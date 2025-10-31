@@ -127,6 +127,11 @@ export async function POST(request: NextRequest) {
           temperature: 0.7,
         })
 
+        if (streaming) {
+          // Return stream directly for immediate response
+          return result.toTextStreamResponse()
+        }
+
         // Collect the full response for non-streaming mode
         let fullText = ''
         for await (const textPart of result.textStream) {
@@ -209,6 +214,11 @@ export async function POST(request: NextRequest) {
           prompt: `${systemPrompt}\n\nUser request: ${message}`,
           temperature: 0.7,
         })
+
+        if (streaming) {
+          // Return stream directly for immediate response
+          return result.toTextStreamResponse()
+        }
 
         // Collect the full response for non-streaming mode
         let fullText = ''
