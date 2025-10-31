@@ -432,7 +432,49 @@ export function HomeClient() {
 
         <AppHeader />
 
-        <div className="flex flex-col h-[calc(100vh-64px-40px)] md:h-[calc(100vh-64px)]">
+        {/* Chat Action Buttons */}
+        <div className="border-b border-gray-200 dark:border-gray-800 px-4 py-2 flex items-center gap-2 bg-white dark:bg-gray-900">
+          <button
+            onClick={handleReset}
+            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
+          <button
+            onClick={handleReset}
+            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            New Chat
+          </button>
+        </div>
+
+        <div className="flex flex-col h-[calc(100vh-64px-40px-48px)] md:h-[calc(100vh-64px-48px)]">
           <ResizableLayout
             className="flex-1 min-h-0"
             singlePanelMode={false}
