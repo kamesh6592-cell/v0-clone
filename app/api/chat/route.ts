@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, ChatDetail } from 'v0-sdk'
-import Anthropic from '@anthropic-ai/sdk'
+import { createAnthropic } from '@ai-sdk/anthropic'
+import { createXai } from '@ai-sdk/xai'
+import { streamText } from 'ai'
 import { auth } from '@/app/(auth)/auth'
 import {
   createChatOwnership,
@@ -18,6 +20,14 @@ import { ChatSDKError } from '@/lib/errors'
 const v0 = createClient(
   process.env.V0_API_URL ? { baseUrl: process.env.V0_API_URL } : {},
 )
+
+// Helper function to replace vusercontent.net URLs with custom domain
+function replacePreviewDomain(url: string | null | undefined): string | null | undefined {
+  if (!url) return url
+  const customDomain = process.env.NEXT_PUBLIC_PREVIEW_DOMAIN || 'dev.ajstudioz.co.in'
+  // Replace any vusercontent.net domain with custom domain
+  return url.replace(/https?:\/\/[^\/]*\.vusercontent\.net/g, `https://${customDomain}`)
+}
 
 function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for')
@@ -104,32 +114,29 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        const anthropic = new Anthropic({
+        const anthropicProvider = createAnthropic({
           apiKey: process.env.ANTHROPIC_API_KEY,
         })
         
-        const result = await anthropic.messages.create({
-          model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 4096,
-          messages: [
-            {
-              role: 'user',
-              content: `You are an expert React developer. Generate React components and applications based on user requests. Focus on creating clean, modern, and functional code using React best practices, TypeScript, and Tailwind CSS.\n\nUser request: ${message}`
-            }
-          ],
+        const systemPrompt = `You are an expert React developer. Generate React components and applications based on user requests. Focus on creating clean, modern, and functional code using React best practices, TypeScript, and Tailwind CSS.`
+
+        // Use AI SDK for streaming
+        const result = await streamText({
+          model: anthropicProvider('claude-3-5-sonnet-20241022'),
+          prompt: `${systemPrompt}\n\nUser request: ${message}`,
           temperature: 0.7,
         })
 
-        // Extract text from Claude response
-        const responseText = result.content
-          .filter((block) => block.type === 'text')
-          .map((block: any) => block.text)
-          .join('\n')
+        // Collect the full response for non-streaming mode
+        let fullText = ''
+        for await (const textPart of result.textStream) {
+          fullText += textPart
+        }
 
         // Create a mock chat response that matches v0's structure
         const mockChat = {
           id: `claude-${Date.now()}`,
-          demo: null,
+          demo: `https://dev.ajstudioz.co.in/preview/${Date.now()}`,
           messages: [
             {
               id: `msg-${Date.now()}`,
@@ -140,12 +147,12 @@ export async function POST(request: NextRequest) {
             {
               id: `msg-${Date.now() + 1}`,
               role: 'assistant' as const,
-              content: responseText,
+              content: fullText,
               timestamp: new Date().toISOString(),
               experimental_content: [
                 {
                   type: 'text',
-                  text: responseText,
+                  text: fullText,
                 }
               ]
             }
@@ -173,6 +180,89 @@ export async function POST(request: NextRequest) {
         console.error('Claude API Error:', error)
         return NextResponse.json(
           { error: 'Failed to process request with Claude API' },
+          { status: 500 },
+        )
+      }
+    }
+
+    // Handle Grok (xAI) API requests
+    if (provider === 'grok') {
+      console.log('Using Grok (xAI) API for message:', message)
+
+      if (!process.env.XAI_API_KEY) {
+        return NextResponse.json(
+          { error: 'Grok API key (XAI_API_KEY) not configured' },
+          { status: 500 },
+        )
+      }
+
+      try {
+        const xaiProvider = createXai({
+          apiKey: process.env.XAI_API_KEY,
+        })
+        
+        const systemPrompt = `You are an expert React developer. Generate React components and applications based on user requests. Focus on creating clean, modern, and functional code using React best practices, TypeScript, and Tailwind CSS.`
+
+        // Use AI SDK with xAI for streaming
+        const result = await streamText({
+          model: xaiProvider('grok-2-1212'),
+          prompt: `${systemPrompt}\n\nUser request: ${message}`,
+          temperature: 0.7,
+        })
+
+        // Collect the full response for non-streaming mode
+        let fullText = ''
+        for await (const textPart of result.textStream) {
+          fullText += textPart
+        }
+
+        // Create a mock chat response that matches v0's structure
+        const mockChat = {
+          id: `grok-${Date.now()}`,
+          demo: `https://dev.ajstudioz.co.in/preview/${Date.now()}`,
+          messages: [
+            {
+              id: `msg-${Date.now()}`,
+              role: 'user' as const,
+              content: message,
+              timestamp: new Date().toISOString(),
+            },
+            {
+              id: `msg-${Date.now() + 1}`,
+              role: 'assistant' as const,
+              content: fullText,
+              timestamp: new Date().toISOString(),
+              experimental_content: [
+                {
+                  type: 'text',
+                  text: fullText,
+                },
+              ],
+            },
+          ],
+        }
+
+        // Log usage for rate limiting
+        if (!chatId) {
+          if (session?.user?.id) {
+            await createChatOwnership({
+              v0ChatId: mockChat.id,
+              userId: session.user.id,
+            })
+          } else {
+            const clientIP = getClientIP(request)
+            await createAnonymousChatLog({
+              ipAddress: clientIP,
+              v0ChatId: mockChat.id,
+            })
+          }
+        }
+
+        return NextResponse.json(mockChat)
+      } catch (error) {
+        console.error('Grok API Error:', error)
+        return NextResponse.json(
+          { error: 'Failed to process request with Grok API' },
           { status: 500 },
         )
       }
@@ -285,7 +375,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       id: chatDetail.id,
-      demo: chatDetail.demo,
+      demo: replacePreviewDomain(chatDetail.demo),
       messages: chatDetail.messages?.map((msg) => ({
         ...msg,
         experimental_content: (msg as any).experimental_content,

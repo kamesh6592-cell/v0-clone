@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, ReactNode } from 'react'
 
-export type APIProvider = 'v0' | 'claude'
+export type APIProvider = 'v0' | 'claude' | 'grok'
 
 interface ProviderContextType {
   provider: APIProvider

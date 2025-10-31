@@ -8,17 +8,8 @@ import { MobileMenu } from './mobile-menu'
 import { useSession } from 'next-auth/react'
 import { UserNav } from '@/components/user-nav'
 import { Button } from '@/components/ui/button'
-import { VercelIcon, GitHubIcon, AJStudiozLogo } from '@/components/ui/icons'
-import { DEPLOY_URL } from '@/lib/constants'
-import { Info } from 'lucide-react'
+import { AJStudiozLogo } from '@/components/ui/icons'
 import { useProvider } from '@/contexts/provider-context'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 
 interface AppHeaderProps {
   className?: string
@@ -52,7 +43,6 @@ export function AppHeader({ className = '' }: AppHeaderProps) {
   const { data: session } = useSession()
   const { provider, setProvider, streaming, setStreaming } = useProvider()
   const isHomepage = pathname === '/'
-  const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false)
 
   // Handle logo click - reset UI if on homepage, otherwise navigate to homepage
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -91,15 +81,19 @@ export function AppHeader({ className = '' }: AppHeaderProps) {
             </div>
           </div>
 
-          {/* Desktop right side - Provider toggles, What's This, GitHub, Deploy, and User */}
-          <div className="hidden lg:flex items-center gap-4">
+          {/* Desktop right side - Provider toggles and User */}
+          <div className="hidden lg:flex items-center gap-3">
             {/* API Provider Toggle */}
-            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1 shadow-sm">
               <Button
                 variant={provider === 'v0' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setProvider('v0')}
-                className="h-7 px-2 text-xs"
+                className={`h-8 px-3 text-xs font-medium transition-all ${
+                  provider === 'v0' 
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm' 
+                    : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
               >
                 v0
               </Button>
@@ -107,9 +101,25 @@ export function AppHeader({ className = '' }: AppHeaderProps) {
                 variant={provider === 'claude' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setProvider('claude')}
-                className="h-7 px-2 text-xs"
+                className={`h-8 px-3 text-xs font-medium transition-all ${
+                  provider === 'claude' 
+                    ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-sm' 
+                    : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
               >
                 Claude
+              </Button>
+              <Button
+                variant={provider === 'grok' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setProvider('grok')}
+                className={`h-8 px-3 text-xs font-medium transition-all ${
+                  provider === 'grok' 
+                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-sm' 
+                    : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                Grok
               </Button>
             </div>
 
@@ -119,131 +129,26 @@ export function AppHeader({ className = '' }: AppHeaderProps) {
                 variant={streaming ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setStreaming(!streaming)}
-                className="h-7 px-2 text-xs"
+                className={`h-8 px-3 text-xs font-medium transition-all ${
+                  streaming
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
               >
-                {streaming ? 'Streaming On' : 'Streaming Off'}
+                {streaming ? '⚡ Streaming' : 'Streaming Off'}
               </Button>
             )}
 
-            <Button
-              variant="outline"
-              className="py-1.5 px-2 h-fit text-sm"
-              onClick={() => setIsInfoDialogOpen(true)}
-            >
-              <Info size={16} />
-              What's This?
-            </Button>
-            <Button
-              variant="outline"
-              className="py-1.5 px-2 h-fit text-sm"
-              asChild
-            >
-              <Link
-                href="https://github.com/vercel/v0-sdk"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <GitHubIcon size={16} />
-                vercel/v0-sdk
-              </Link>
-            </Button>
-
-            {/* Deploy with Vercel button - hidden on mobile */}
-            <Button
-              className="bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-900 py-1.5 px-2 h-fit text-sm"
-              asChild
-            >
-              <Link href={DEPLOY_URL} target="_blank" rel="noopener noreferrer">
-                <VercelIcon size={16} />
-                Deploy with Vercel
-              </Link>
-            </Button>
             <UserNav session={session} />
           </div>
 
           {/* Mobile right side - Only menu button and user avatar */}
           <div className="flex lg:hidden items-center gap-2">
             <UserNav session={session} />
-            <MobileMenu onInfoDialogOpen={() => setIsInfoDialogOpen(true)} />
+            <MobileMenu />
           </div>
         </div>
       </div>
-
-      {/* Info Dialog */}
-      <Dialog open={isInfoDialogOpen} onOpenChange={setIsInfoDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold mb-4">
-              AJ STUDIOZ Platform
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 text-sm text-gray-600 dark:text-gray-300">
-            <p>
-              This is <strong>AJ STUDIOZ</strong> - an AI-powered platform where users can enter text prompts and generate React components
-              and applications using AI, built with both{' '}
-              <a
-                href="https://v0.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-              >
-                v0 SDK
-              </a>{' '}
-              and{' '}
-              <a
-                href="https://claude.ai"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-              >
-                Claude API
-              </a>.
-            </p>
-            <p>
-              It's built with{' '}
-              <a
-                href="https://nextjs.org"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-              >
-                Next.js
-              </a>{' '}
-              and integrates both{' '}
-              <a
-                href="https://v0-sdk.dev"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-              >
-                v0 SDK
-              </a>{' '}
-              and Claude API to provide a full-featured interface with authentication, database
-              integration, and real-time streaming responses.
-            </p>
-            <p>
-              Try the platform or{' '}
-              <a
-                href={DEPLOY_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-              >
-                deploy your own
-              </a>
-              .
-            </p>
-          </div>
-          <div className="flex justify-end mt-6">
-            <Button
-              onClick={() => setIsInfoDialogOpen(false)}
-              className="bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900"
-            >
-              Try now
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
