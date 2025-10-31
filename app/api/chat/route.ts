@@ -46,10 +46,31 @@ function getClientIP(request: NextRequest): string {
 }
 
 export async function POST(request: NextRequest) {
+  let body: any
+  
+  // Helper function to try alternative providers
+  const attemptedProviders = new Set<string>()
+  const tryAlternativeProvider = async (
+    currentProvider: string
+  ): Promise<string> => {
+    attemptedProviders.add(currentProvider)
+    
+    // Define fallback order: v0 → claude → grok
+    const providerOrder = ['v0', 'claude', 'grok']
+    const nextProvider = providerOrder.find(p => !attemptedProviders.has(p))
+    
+    if (nextProvider) {
+      console.log(`Quota exhausted for ${currentProvider}, switching to ${nextProvider}`)
+      return nextProvider
+    }
+    
+    throw new Error('All AI providers quota exhausted')
+  }
+
   try {
     const session = await auth()
-    const { message, chatId, streaming, attachments, projectId, provider = 'v0' } =
-      await request.json()
+    body = await request.json()
+    const { message, chatId, streaming, attachments, projectId, provider = 'v0' } = body
 
     if (!message) {
       return NextResponse.json(
@@ -181,8 +202,26 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json(mockChat)
-      } catch (error) {
+      } catch (error: any) {
         console.error('Claude API Error:', error)
+        
+        // Check if it's a quota/rate limit error
+        const isQuotaError = error?.message?.toLowerCase().includes('quota') ||
+                            error?.message?.toLowerCase().includes('rate limit') ||
+                            error?.status === 429
+        
+        if (isQuotaError) {
+          const nextProvider = await tryAlternativeProvider('claude')
+          // Create new request with updated provider
+          const bodyWithNewProvider = { ...body, provider: nextProvider }
+          const newRequest = new NextRequest(request.url, {
+            method: 'POST',
+            headers: request.headers,
+            body: JSON.stringify(bodyWithNewProvider),
+          })
+          return POST(newRequest)
+        }
+        
         return NextResponse.json(
           { error: 'Failed to process request with Claude API' },
           { status: 500 },
@@ -269,8 +308,26 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json(mockChat)
-      } catch (error) {
+      } catch (error: any) {
         console.error('Grok API Error:', error)
+        
+        // Check if this is a quota/rate limit error
+        const isQuotaError = error?.message?.toLowerCase().includes('quota') ||
+                           error?.message?.toLowerCase().includes('rate limit') ||
+                           error?.status === 429
+        
+        if (isQuotaError) {
+          const nextProvider = await tryAlternativeProvider('grok')
+          // Create new request with updated provider
+          const bodyWithNewProvider = { ...body, provider: nextProvider }
+          const newRequest = new NextRequest(request.url, {
+            method: 'POST',
+            headers: request.headers,
+            body: JSON.stringify(bodyWithNewProvider),
+          })
+          return POST(newRequest)
+        }
+        
         return NextResponse.json(
           { error: 'Failed to process request with Grok API' },
           { status: 500 },
@@ -391,13 +448,30 @@ export async function POST(request: NextRequest) {
         experimental_content: (msg as any).experimental_content,
       })),
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('V0 API Error:', error)
 
     // Log more detailed error information
     if (error instanceof Error) {
       console.error('Error message:', error.message)
       console.error('Error stack:', error.stack)
+    }
+
+    // Check if this is a quota/rate limit error
+    const isQuotaError = error?.message?.toLowerCase().includes('quota') ||
+                       error?.message?.toLowerCase().includes('rate limit') ||
+                       error?.status === 429
+    
+    if (isQuotaError) {
+      const nextProvider = await tryAlternativeProvider('v0')
+      // Create new request with updated provider
+      const bodyWithNewProvider = { ...body, provider: nextProvider }
+      const newRequest = new NextRequest(request.url, {
+        method: 'POST',
+        headers: request.headers,
+        body: JSON.stringify(bodyWithNewProvider),
+      })
+      return POST(newRequest)
     }
 
     return NextResponse.json(
