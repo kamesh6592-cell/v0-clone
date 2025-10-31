@@ -26,6 +26,7 @@ import { ChatInput } from '@/components/chat/chat-input'
 import { PreviewPanel } from '@/components/chat/preview-panel'
 import { ResizableLayout } from '@/components/shared/resizable-layout'
 import { BottomToolbar } from '@/components/shared/bottom-toolbar'
+import { TemplatesShowcase } from '@/components/home/templates-showcase'
 import { useProvider } from '@/contexts/provider-context'
 
 // Component that uses useSearchParams - needs to be wrapped in Suspense
@@ -560,6 +561,22 @@ export function HomeClient() {
             </PromptInput>
           </div>
 
+          {/* Templates Showcase */}
+          <div className="mt-12">
+            <TemplatesShowcase
+              onSelectTemplate={(prompt) => {
+                setMessage(prompt)
+                // Submit after setting message
+                setTimeout(() => {
+                  const form = textareaRef.current?.form
+                  if (form) {
+                    form.requestSubmit()
+                  }
+                }, 100)
+              }}
+            />
+          </div>
+
           {/* Suggestions */}
           <div className="mt-4 max-w-2xl mx-auto">
             <Suggestions>
@@ -672,13 +689,27 @@ export function HomeClient() {
 
           {/* Footer */}
           <div className="mt-8 md:mt-16 text-center text-sm text-muted-foreground">
-            <p>
-              Powered by{' '}
+            <p className="flex items-center justify-center gap-2 flex-wrap">
+              <span>Powered by</span>
               <Link
                 href="https://v0-sdk.dev"
-                className="text-foreground hover:underline"
+                className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
               >
-                v0 SDK
+                v0
+              </Link>
+              <span>•</span>
+              <Link
+                href="https://claude.ai"
+                className="text-purple-600 dark:text-purple-400 hover:underline font-medium"
+              >
+                Claude
+              </Link>
+              <span>•</span>
+              <Link
+                href="https://x.ai"
+                className="text-green-600 dark:text-green-400 hover:underline font-medium"
+              >
+                Grok
               </Link>
             </p>
           </div>
