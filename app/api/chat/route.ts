@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
 
         // Use AI SDK for streaming
         const result = await streamText({
-          model: anthropicProvider('claude-3-5-sonnet-20241022'),
+          model: anthropicProvider('claude-sonnet-4-5-20250929'),
           prompt: `${systemPrompt}\n\nUser request: ${message}`,
           temperature: 0.7,
         })
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
 
         // Use AI SDK with xAI for streaming
         const result = await streamText({
-          model: xaiProvider('grok-2-1212'),
+          model: xaiProvider('grok-4-fast-reasoning'),
           prompt: `${systemPrompt}\n\nUser request: ${message}`,
           temperature: 0.7,
         })
