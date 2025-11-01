@@ -168,8 +168,66 @@ export async function POST(request: NextRequest) {
         })
 
         if (streaming) {
-          // Return stream directly for immediate response
-          return result.toTextStreamResponse()
+          // Create a custom stream that wraps Claude's text in v0's format
+          const encoder = new TextEncoder()
+          const customStream = new ReadableStream({
+            async start(controller) {
+              try {
+                // Send initial chat metadata
+                const chatId = `claude-${Date.now()}`
+                const initialData = {
+                  object: 'chat',
+                  id: chatId,
+                  demo: null,
+                  messages: []
+                }
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`))
+
+                // Stream the text content
+                let accumulatedText = ''
+                for await (const textPart of result.textStream) {
+                  accumulatedText += textPart
+                  const chunkData = {
+                    object: 'chat.message.delta',
+                    delta: {
+                      content: textPart
+                    }
+                  }
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`))
+                }
+
+                // Send final message
+                const finalData = {
+                  object: 'chat.message.completed',
+                  message: {
+                    id: `msg-${Date.now()}`,
+                    role: 'assistant',
+                    content: accumulatedText,
+                    experimental_content: [
+                      {
+                        type: 'text',
+                        text: accumulatedText
+                      }
+                    ]
+                  }
+                }
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(finalData)}\n\n`))
+                controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+                controller.close()
+              } catch (error) {
+                console.error('Stream error:', error)
+                controller.error(error)
+              }
+            }
+          })
+
+          return new Response(customStream, {
+            headers: {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              Connection: 'keep-alive',
+            },
+          })
         }
 
         // Collect the full response for non-streaming mode
@@ -275,8 +333,66 @@ export async function POST(request: NextRequest) {
         })
 
         if (streaming) {
-          // Return stream directly for immediate response
-          return result.toTextStreamResponse()
+          // Create a custom stream that wraps Grok's text in v0's format
+          const encoder = new TextEncoder()
+          const customStream = new ReadableStream({
+            async start(controller) {
+              try {
+                // Send initial chat metadata
+                const chatId = `grok-${Date.now()}`
+                const initialData = {
+                  object: 'chat',
+                  id: chatId,
+                  demo: null,
+                  messages: []
+                }
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`))
+
+                // Stream the text content
+                let accumulatedText = ''
+                for await (const textPart of result.textStream) {
+                  accumulatedText += textPart
+                  const chunkData = {
+                    object: 'chat.message.delta',
+                    delta: {
+                      content: textPart
+                    }
+                  }
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`))
+                }
+
+                // Send final message
+                const finalData = {
+                  object: 'chat.message.completed',
+                  message: {
+                    id: `msg-${Date.now()}`,
+                    role: 'assistant',
+                    content: accumulatedText,
+                    experimental_content: [
+                      {
+                        type: 'text',
+                        text: accumulatedText
+                      }
+                    ]
+                  }
+                }
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(finalData)}\n\n`))
+                controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+                controller.close()
+              } catch (error) {
+                console.error('Stream error:', error)
+                controller.error(error)
+              }
+            }
+          })
+
+          return new Response(customStream, {
+            headers: {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              Connection: 'keep-alive',
+            },
+          })
         }
 
         // Collect the full response for non-streaming mode
