@@ -29,6 +29,7 @@ export function useChat(chatId: string) {
   const [isLoading, setIsLoading] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([])
+  const [currentProvider, setCurrentProvider] = useState<string>('v0')
 
   // Use SWR to fetch chat data
   const {
@@ -325,6 +326,12 @@ export function useChat(chatId: string) {
   }
 
   const handleChatData = async (chatData: any) => {
+    // Extract provider info if available
+    if (chatData.provider) {
+      console.log('Provider detected:', chatData.provider)
+      setCurrentProvider(chatData.provider)
+    }
+    
     if (chatData.id && !currentChat) {
       // Only update with basic chat data, without demo URL
       // The demo URL will be fetched in handleStreamingComplete
@@ -352,5 +359,6 @@ export function useChat(chatId: string) {
     handleSendMessage,
     handleStreamingComplete,
     handleChatData,
+    currentProvider,
   }
 }

@@ -2,17 +2,24 @@ import { Resend } from 'resend'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
+type EmailResult = {
+  success: boolean
+  id?: string | null
+  error?: string
+  provider: 'resend' | 'none'
+}
+
 export async function sendQuotaExhaustedEmail(
   provider: string,
   errorMessage: string,
-) {
+): Promise<EmailResult> {
   if (!resend) {
     console.warn('Resend API key not configured, skipping email notification')
-    return
+    return { success: false, error: 'Resend API key not configured', provider: 'none' }
   }
 
   try {
-    await resend.emails.send({
+    const res: any = await resend.emails.send({
       from: 'AJ STUDIOZ <noreply@ajstudioz.co.in>',
       to: 'kamesh6592@gmail.com',
       subject: `⚠️ ${provider.toUpperCase()} API Quota Exhausted`,
@@ -42,20 +49,24 @@ export async function sendQuotaExhaustedEmail(
         </div>
       `,
     })
-    console.log(`Quota exhausted email sent for ${provider}`)
-  } catch (error) {
+
+    const id = res?.id ?? res?.messageId ?? null
+    console.log(`Quota exhausted email sent for ${provider}, id=${id}`)
+    return { success: true, id, provider: 'resend' }
+  } catch (error: any) {
     console.error('Failed to send quota exhausted email:', error)
+    return { success: false, error: error?.message ?? String(error), provider: 'resend' }
   }
 }
 
-export async function sendAllProvidersDownEmail() {
+export async function sendAllProvidersDownEmail(): Promise<EmailResult> {
   if (!resend) {
     console.warn('Resend API key not configured, skipping email notification')
-    return
+    return { success: false, error: 'Resend API key not configured', provider: 'none' }
   }
 
   try {
-    await resend.emails.send({
+    const res: any = await resend.emails.send({
       from: 'AJ STUDIOZ <noreply@ajstudioz.co.in>',
       to: 'kamesh6592@gmail.com',
       subject: '🚨 URGENT: All AI Providers Are Down',
@@ -84,8 +95,12 @@ export async function sendAllProvidersDownEmail() {
         </div>
       `,
     })
-    console.log('All providers down email sent')
-  } catch (error) {
+
+    const id = res?.id ?? res?.messageId ?? null
+    console.log(`All providers down email sent, id=${id}`)
+    return { success: true, id, provider: 'resend' }
+  } catch (error: any) {
     console.error('Failed to send all providers down email:', error)
+    return { success: false, error: error?.message ?? String(error), provider: 'resend' }
   }
 }

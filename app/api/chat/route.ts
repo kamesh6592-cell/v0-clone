@@ -46,6 +46,65 @@ function getClientIP(request: NextRequest): string {
   return 'unknown'
 }
 
+// Helper function to inject provider info into v0 stream
+function wrapV0StreamWithProvider(originalStream: ReadableStream<Uint8Array>, provider: string = 'v0'): ReadableStream<Uint8Array> {
+  const reader = originalStream.getReader()
+  const encoder = new TextEncoder()
+  const decoder = new TextDecoder()
+  let isFirstChunk = true
+
+  return new ReadableStream({
+    async start(controller) {
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          
+          if (done) {
+            controller.close()
+            break
+          }
+
+          // If this is the first chunk, try to inject provider info
+          if (isFirstChunk) {
+            isFirstChunk = false
+            const text = decoder.decode(value, { stream: true })
+            
+            // Parse SSE data to find the initial chat object
+            const lines = text.split('\n')
+            let modified = false
+            
+            for (let i = 0; i < lines.length; i++) {
+              if (lines[i].startsWith('data: ') && !lines[i].includes('[DONE]')) {
+                try {
+                  const data = JSON.parse(lines[i].substring(6))
+                  if (data.object === 'chat' && !data.provider) {
+                    data.provider = provider
+                    lines[i] = `data: ${JSON.stringify(data)}`
+                    modified = true
+                    break
+                  }
+                } catch (e) {
+                  // Not JSON or parsing error, skip
+                }
+              }
+            }
+            
+            if (modified) {
+              controller.enqueue(encoder.encode(lines.join('\n')))
+            } else {
+              controller.enqueue(value)
+            }
+          } else {
+            controller.enqueue(value)
+          }
+        }
+      } catch (error) {
+        controller.error(error)
+      }
+    }
+  })
+}
+
 // Helper function to try alternative providers
 async function tryAlternativeProvider(
   currentProvider: string,
@@ -173,13 +232,14 @@ export async function POST(request: NextRequest) {
           const customStream = new ReadableStream({
             async start(controller) {
               try {
-                // Send initial chat metadata
+                // Send initial chat metadata with provider info
                 const chatId = `claude-${Date.now()}`
                 const initialData = {
                   object: 'chat',
                   id: chatId,
                   demo: null,
-                  messages: []
+                  messages: [],
+                  provider: 'claude'
                 }
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`))
 
@@ -338,13 +398,14 @@ export async function POST(request: NextRequest) {
           const customStream = new ReadableStream({
             async start(controller) {
               try {
-                // Send initial chat metadata
+                // Send initial chat metadata with provider info
                 const chatId = `grok-${Date.now()}`
                 const initialData = {
                   object: 'chat',
                   id: chatId,
                   demo: null,
-                  messages: []
+                  messages: [],
+                  provider: 'grok'
                 }
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`))
 
@@ -492,8 +553,9 @@ export async function POST(request: NextRequest) {
           })
           console.log('Streaming message sent to existing chat successfully')
 
-          // Return the stream directly
-          return new Response(chat as ReadableStream<Uint8Array>, {
+          // Wrap stream to inject provider info
+          const wrappedStream = wrapV0StreamWithProvider(chat as ReadableStream<Uint8Array>, 'v0')
+          return new Response(wrappedStream, {
             headers: {
               'Content-Type': 'text/event-stream',
               'Cache-Control': 'no-cache',
@@ -544,8 +606,9 @@ export async function POST(request: NextRequest) {
             ...(attachments && attachments.length > 0 && { attachments }),
           })
           
-          // Return the stream directly
-          return new Response(chat as ReadableStream<Uint8Array>, {
+          // Wrap stream to inject provider info
+          const wrappedStream = wrapV0StreamWithProvider(chat as ReadableStream<Uint8Array>, 'v0')
+          return new Response(wrappedStream, {
             headers: {
               'Content-Type': 'text/event-stream',
               'Cache-Control': 'no-cache',
@@ -575,8 +638,9 @@ export async function POST(request: NextRequest) {
         })
         console.log('Streaming chat created successfully')
 
-        // Return the stream directly
-        return new Response(chat as ReadableStream<Uint8Array>, {
+        // Wrap stream to inject provider info
+        const wrappedStream = wrapV0StreamWithProvider(chat as ReadableStream<Uint8Array>, 'v0')
+        return new Response(wrappedStream, {
           headers: {
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',

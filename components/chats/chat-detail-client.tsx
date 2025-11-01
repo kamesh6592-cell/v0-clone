@@ -38,6 +38,7 @@ export function ChatDetailClient() {
     handleSendMessage,
     handleStreamingComplete,
     handleChatData,
+    currentProvider,
   } = useChat(chatId)
 
   // Wrapper function to handle attachments
@@ -86,7 +87,22 @@ export function ChatDetailClient() {
           singlePanelMode={false}
           activePanel={activePanel === 'chat' ? 'left' : 'right'}
           leftPanel={
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full relative">
+              {isStreaming && (
+                <div className="absolute top-2 right-2 z-10 flex items-center gap-2 bg-white dark:bg-gray-800 rounded-full px-3 py-1.5 shadow-md border border-gray-200 dark:border-gray-700">
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    AI:
+                  </span>
+                  <span className={cn(
+                    "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
+                    currentProvider === 'v0' && "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+                    currentProvider === 'claude' && "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+                    currentProvider === 'grok' && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                  )}>
+                    {currentProvider === 'v0' ? 'v0' : currentProvider === 'claude' ? 'Claude' : 'Grok'}
+                  </span>
+                </div>
+              )}
               <div className="flex-1 overflow-y-auto">
                 <ChatMessages
                   chatHistory={chatHistory}

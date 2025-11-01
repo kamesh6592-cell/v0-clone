@@ -28,6 +28,7 @@ import { ResizableLayout } from '@/components/shared/resizable-layout'
 import { BottomToolbar } from '@/components/shared/bottom-toolbar'
 import { TemplatesShowcase } from '@/components/home/templates-showcase'
 import { useProvider } from '@/contexts/provider-context'
+import { cn } from '@/lib/utils'
 
 // Component that uses useSearchParams - needs to be wrapped in Suspense
 function SearchParamsHandler({ onReset }: { onReset: () => void }) {
@@ -72,6 +73,8 @@ export function HomeClient() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [activePanel, setActivePanel] = useState<'chat' | 'preview'>('chat')
+  const [currentProvider, setCurrentProvider] = useState<string>('v0')
+  const [isStreaming, setIsStreaming] = useState(false)
   const router = useRouter()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -232,6 +235,7 @@ export function HomeClient() {
       setIsLoading(false)
 
       // Add streaming assistant response
+      setIsStreaming(true)
       setChatHistory((prev) => [
         ...prev,
         {
@@ -262,6 +266,12 @@ export function HomeClient() {
   }
 
   const handleChatData = async (chatData: any) => {
+    // Extract provider info if available
+    if (chatData.provider) {
+      console.log('Provider detected:', chatData.provider)
+      setCurrentProvider(chatData.provider)
+    }
+    
     if (chatData.id) {
       // Only set currentChat if it's not already set or if this is the main chat object
       if (!currentChatId || chatData.object === 'chat') {
@@ -294,6 +304,7 @@ export function HomeClient() {
 
   const handleStreamingComplete = async (finalContent: any) => {
     setIsLoading(false)
+    setIsStreaming(false)
 
     // Update chat history with final content
     setChatHistory((prev) => {
@@ -491,7 +502,22 @@ export function HomeClient() {
             singlePanelMode={false}
             activePanel={activePanel === 'chat' ? 'left' : 'right'}
             leftPanel={
-              <div className="flex flex-col h-full">
+              <div className="flex flex-col h-full relative">
+                {isStreaming && (
+                  <div className="absolute top-2 right-2 z-10 flex items-center gap-2 bg-white dark:bg-gray-800 rounded-full px-3 py-1.5 shadow-md border border-gray-200 dark:border-gray-700">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                      AI:
+                    </span>
+                    <span className={cn(
+                      "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
+                      currentProvider === 'v0' && "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+                      currentProvider === 'claude' && "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+                      currentProvider === 'grok' && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                    )}>
+                      {currentProvider === 'v0' ? 'v0' : currentProvider === 'claude' ? 'Claude' : 'Grok'}
+                    </span>
+                  </div>
+                )}
                 <div className="flex-1 overflow-y-auto">
                   <ChatMessages
                     chatHistory={chatHistory}
