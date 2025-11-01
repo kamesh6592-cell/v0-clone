@@ -15,6 +15,7 @@ import {
   anonymousEntitlements,
 } from '@/lib/entitlements'
 import { ChatSDKError } from '@/lib/errors'
+import { sendQuotaExhaustedEmail, sendAllProvidersDownEmail } from '@/lib/email'
 
 // Create v0 client with custom baseUrl if V0_API_URL is set
 const v0 = createClient(
@@ -45,32 +46,50 @@ function getClientIP(request: NextRequest): string {
   return 'unknown'
 }
 
+// Helper function to try alternative providers
+async function tryAlternativeProvider(
+  currentProvider: string,
+  errorMessage: string,
+  attemptedProviders: Set<string>
+): Promise<string> {
+  attemptedProviders.add(currentProvider)
+  
+  console.log('Attempted providers so far:', Array.from(attemptedProviders))
+  
+  // Send email notification for quota exhaustion
+  await sendQuotaExhaustedEmail(currentProvider, errorMessage).catch(err => {
+    console.error('Failed to send quota email:', err)
+  })
+  
+  // Define fallback order: v0 → claude → grok
+  const providerOrder = ['v0', 'claude', 'grok']
+  const nextProvider = providerOrder.find(p => !attemptedProviders.has(p))
+  
+  if (nextProvider) {
+    console.log(`Switching from ${currentProvider} to ${nextProvider}`)
+    return nextProvider
+  }
+  
+  // All providers exhausted, send critical alert
+  await sendAllProvidersDownEmail().catch(err => {
+    console.error('Failed to send all providers down email:', err)
+  })
+  
+  throw new Error('All AI providers quota exhausted')
+}
+
 export async function POST(request: NextRequest) {
   let body: any
+  let attemptedProviders: Set<string> = new Set()
   
-  // Helper function to try alternative providers
-  const attemptedProviders = new Set<string>()
-  const tryAlternativeProvider = async (
-    currentProvider: string
-  ): Promise<string> => {
-    attemptedProviders.add(currentProvider)
-    
-    // Define fallback order: v0 → claude → grok
-    const providerOrder = ['v0', 'claude', 'grok']
-    const nextProvider = providerOrder.find(p => !attemptedProviders.has(p))
-    
-    if (nextProvider) {
-      console.log(`Quota exhausted for ${currentProvider}, switching to ${nextProvider}`)
-      return nextProvider
-    }
-    
-    throw new Error('All AI providers quota exhausted')
-  }
-
   try {
     const session = await auth()
     body = await request.json()
-    const { message, chatId, streaming, attachments, projectId, provider = 'v0' } = body
+    const { message, chatId, streaming, attachments, projectId, provider = 'v0', _attemptedProviders } = body
+    
+    // Restore attempted providers from previous request
+    attemptedProviders = new Set<string>(_attemptedProviders || [])
+    console.log('Starting request with provider:', provider, 'Previously attempted:', Array.from(attemptedProviders))
 
     if (!message) {
       return NextResponse.json(
@@ -211,9 +230,10 @@ export async function POST(request: NextRequest) {
                             error?.status === 429
         
         if (isQuotaError) {
-          const nextProvider = await tryAlternativeProvider('claude')
-          // Create new request with updated provider
-          const bodyWithNewProvider = { ...body, provider: nextProvider }
+          const nextProvider = await tryAlternativeProvider('claude', error?.message || 'Unknown error', attemptedProviders)
+          console.log(`Claude failed, retrying with ${nextProvider}`)
+          // Create new request with updated provider and pass attempted providers in header
+          const bodyWithNewProvider = { ...body, provider: nextProvider, _attemptedProviders: Array.from(attemptedProviders) }
           const newRequest = new NextRequest(request.url, {
             method: 'POST',
             headers: request.headers,
@@ -317,9 +337,10 @@ export async function POST(request: NextRequest) {
                            error?.status === 429
         
         if (isQuotaError) {
-          const nextProvider = await tryAlternativeProvider('grok')
-          // Create new request with updated provider
-          const bodyWithNewProvider = { ...body, provider: nextProvider }
+          const nextProvider = await tryAlternativeProvider('grok', error?.message || 'Unknown error', attemptedProviders)
+          console.log(`Grok failed, retrying with ${nextProvider}`)
+          // Create new request with updated provider and pass attempted providers
+          const bodyWithNewProvider = { ...body, provider: nextProvider, _attemptedProviders: Array.from(attemptedProviders) }
           const newRequest = new NextRequest(request.url, {
             method: 'POST',
             headers: request.headers,
@@ -372,8 +393,29 @@ export async function POST(request: NextRequest) {
           })
         }
       } catch (chatError: any) {
-        // If chat doesn't exist or has error, create a new chat instead
-        console.warn('Failed to send message to existing chat, creating new chat:', chatError.message)
+        // If chat doesn't exist or has error, check if we should switch providers
+        console.error('Failed to send message to existing chat:', chatError.message)
+        
+        const shouldSwitchProvider = 
+          chatError?.message?.toLowerCase().includes('quota') ||
+          chatError?.message?.toLowerCase().includes('rate limit') ||
+          chatError?.message?.toLowerCase().includes('internal_server_error') ||
+          chatError?.message?.toLowerCase().includes('unexpected error') ||
+          chatError?.message?.includes('HTTP 500') ||
+          chatError?.message?.includes('HTTP 502') ||
+          chatError?.message?.includes('HTTP 503') ||
+          chatError?.status === 429 ||
+          chatError?.status === 500 ||
+          chatError?.status === 502 ||
+          chatError?.status === 503
+        
+        if (shouldSwitchProvider) {
+          console.log('Switching to alternative provider due to error')
+          throw chatError // Throw to outer catch for provider switching
+        }
+        
+        // Otherwise, try creating a new chat
+        console.warn('Creating new chat as fallback')
         
         if (streaming) {
           console.log('Creating new streaming chat after error:', {
@@ -506,11 +548,11 @@ export async function POST(request: NextRequest) {
     if (shouldRetry && body?.provider) {
       console.log(`Error with ${body.provider}, attempting to use alternative provider`)
       try {
-        const nextProvider = await tryAlternativeProvider(body.provider)
-        console.log(`Switching to ${nextProvider} provider`)
+        const nextProvider = await tryAlternativeProvider(body.provider, error?.message || 'Unknown error', attemptedProviders)
+        console.log(`v0 failed, switching to ${nextProvider} provider`)
         
-        // Create new request with updated provider
-        const bodyWithNewProvider = { ...body, provider: nextProvider }
+        // Create new request with updated provider and pass attempted providers
+        const bodyWithNewProvider = { ...body, provider: nextProvider, _attemptedProviders: Array.from(attemptedProviders) }
         const newRequest = new NextRequest(request.url, {
           method: 'POST',
           headers: request.headers,
