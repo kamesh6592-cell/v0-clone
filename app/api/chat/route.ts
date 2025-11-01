@@ -339,36 +339,68 @@ export async function POST(request: NextRequest) {
 
     if (chatId) {
       // continue existing chat
-      if (streaming) {
-        // Return streaming response for existing chat
-        console.log('Sending streaming message to existing chat:', {
-          chatId,
-          message,
-          responseMode: 'experimental_stream',
-        })
-        chat = await v0.chats.sendMessage({
-          chatId: chatId,
-          message,
-          responseMode: 'experimental_stream',
-          ...(attachments && attachments.length > 0 && { attachments }),
-        })
-        console.log('Streaming message sent to existing chat successfully')
+      try {
+        if (streaming) {
+          // Return streaming response for existing chat
+          console.log('Sending streaming message to existing chat:', {
+            chatId,
+            message,
+            responseMode: 'experimental_stream',
+          })
+          chat = await v0.chats.sendMessage({
+            chatId: chatId,
+            message,
+            responseMode: 'experimental_stream',
+            ...(attachments && attachments.length > 0 && { attachments }),
+          })
+          console.log('Streaming message sent to existing chat successfully')
 
-        // Return the stream directly
-        return new Response(chat as ReadableStream<Uint8Array>, {
-          headers: {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            Connection: 'keep-alive',
-          },
-        })
-      } else {
-        // Non-streaming response for existing chat
-        chat = await v0.chats.sendMessage({
-          chatId: chatId,
-          message,
-          ...(attachments && attachments.length > 0 && { attachments }),
-        })
+          // Return the stream directly
+          return new Response(chat as ReadableStream<Uint8Array>, {
+            headers: {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              Connection: 'keep-alive',
+            },
+          })
+        } else {
+          // Non-streaming response for existing chat
+          chat = await v0.chats.sendMessage({
+            chatId: chatId,
+            message,
+            ...(attachments && attachments.length > 0 && { attachments }),
+          })
+        }
+      } catch (chatError: any) {
+        // If chat doesn't exist or has error, create a new chat instead
+        console.warn('Failed to send message to existing chat, creating new chat:', chatError.message)
+        
+        if (streaming) {
+          console.log('Creating new streaming chat after error:', {
+            message,
+            responseMode: 'experimental_stream',
+          })
+          chat = await v0.chats.create({
+            message,
+            responseMode: 'experimental_stream',
+            ...(attachments && attachments.length > 0 && { attachments }),
+          })
+          
+          // Return the stream directly
+          return new Response(chat as ReadableStream<Uint8Array>, {
+            headers: {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              Connection: 'keep-alive',
+            },
+          })
+        } else {
+          chat = await v0.chats.create({
+            message,
+            responseMode: 'sync',
+            ...(attachments && attachments.length > 0 && { attachments }),
+          })
+        }
       }
     } else {
       // create new chat
@@ -457,21 +489,43 @@ export async function POST(request: NextRequest) {
       console.error('Error stack:', error.stack)
     }
 
-    // Check if this is a quota/rate limit error
-    const isQuotaError = error?.message?.toLowerCase().includes('quota') ||
-                       error?.message?.toLowerCase().includes('rate limit') ||
-                       error?.status === 429
+    // Check if this is an error we should retry with another provider
+    const shouldRetry = 
+      error?.message?.toLowerCase().includes('quota') ||
+      error?.message?.toLowerCase().includes('rate limit') ||
+      error?.message?.toLowerCase().includes('internal_server_error') ||
+      error?.message?.toLowerCase().includes('unexpected error') ||
+      error?.message?.includes('HTTP 500') ||
+      error?.message?.includes('HTTP 502') ||
+      error?.message?.includes('HTTP 503') ||
+      error?.status === 429 ||
+      error?.status === 500 ||
+      error?.status === 502 ||
+      error?.status === 503
     
-    if (isQuotaError) {
-      const nextProvider = await tryAlternativeProvider('v0')
-      // Create new request with updated provider
-      const bodyWithNewProvider = { ...body, provider: nextProvider }
-      const newRequest = new NextRequest(request.url, {
-        method: 'POST',
-        headers: request.headers,
-        body: JSON.stringify(bodyWithNewProvider),
-      })
-      return POST(newRequest)
+    if (shouldRetry && body?.provider) {
+      console.log(`Error with ${body.provider}, attempting to use alternative provider`)
+      try {
+        const nextProvider = await tryAlternativeProvider(body.provider)
+        console.log(`Switching to ${nextProvider} provider`)
+        
+        // Create new request with updated provider
+        const bodyWithNewProvider = { ...body, provider: nextProvider }
+        const newRequest = new NextRequest(request.url, {
+          method: 'POST',
+          headers: request.headers,
+          body: JSON.stringify(bodyWithNewProvider),
+        })
+        return POST(newRequest)
+      } catch (providerError) {
+        console.error('All providers exhausted:', providerError)
+        return NextResponse.json(
+          {
+            error: 'All AI providers are currently unavailable. Please try again later.',
+          },
+          { status: 503 },
+        )
+      }
     }
 
     return NextResponse.json(

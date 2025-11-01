@@ -179,6 +179,8 @@ export function HomeClient() {
     setIsLoading(true)
 
     try {
+      console.log('Sending message with provider:', provider, 'streaming:', streaming)
+      
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -192,23 +194,32 @@ export function HomeClient() {
         }),
       })
 
+      console.log('API Response:', response.status, response.statusText)
+
       if (!response.ok) {
         // Try to get the specific error message from the response
         let errorMessage =
           'Sorry, there was an error processing your message. Please try again.'
         try {
           const errorData = await response.json()
-          if (errorData.message) {
+          console.error('API Error Response:', errorData)
+          if (errorData.error) {
+            errorMessage = errorData.error
+          } else if (errorData.message) {
             errorMessage = errorData.message
           } else if (response.status === 429) {
             errorMessage =
               'You have exceeded your maximum number of messages for the day. Please try again later.'
+          } else if (response.status === 503) {
+            errorMessage = 'All AI providers are currently unavailable. Please try again later.'
           }
         } catch (parseError) {
           console.error('Error parsing error response:', parseError)
           if (response.status === 429) {
             errorMessage =
               'You have exceeded your maximum number of messages for the day. Please try again later.'
+          } else if (response.status === 503) {
+            errorMessage = 'All AI providers are currently unavailable. Please try again later.'
           }
         }
         throw new Error(errorMessage)
