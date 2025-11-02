@@ -343,20 +343,28 @@ When asked about your identity, always identify yourself as Claude (made by Anth
         return NextResponse.json(mockChat)
       } catch (error: any) {
         console.error('Claude API Error:', error)
-        
-        // Check if it's a quota/rate limit error
-        const isQuotaError = error?.message?.toLowerCase().includes('quota') ||
-                            error?.message?.toLowerCase().includes('rate limit') ||
-                            error?.status === 429
-        
-        // Send email notification immediately for ANY Claude failure
-        await sendQuotaExhaustedEmail('claude', error?.message || 'Unknown error').catch(err => {
-          console.error('Failed to send Claude error email:', err)
+        console.error('Error details:', {
+          message: error?.message,
+          status: error?.status,
+          code: error?.code,
+          type: error?.type
         })
         
+        // Only check for ACTUAL quota/rate limit errors (429 status code)
+        // Since Claude API is unlimited, don't treat connection errors as quota issues
+        const isQuotaError = error?.status === 429 ||
+                            (error?.message?.toLowerCase().includes('rate_limit') && error?.status === 429) ||
+                            (error?.message?.toLowerCase().includes('quota') && error?.status === 429)
+        
         if (isQuotaError) {
+          // Only send email and switch if it's a REAL quota/rate limit error
+          console.log('Detected quota/rate limit error for Claude')
+          await sendQuotaExhaustedEmail('claude', error?.message || 'Unknown error').catch(err => {
+            console.error('Failed to send Claude error email:', err)
+          })
+          
           const nextProvider = await tryAlternativeProvider('claude', error?.message || 'Unknown error', attemptedProviders)
-          console.log(`Claude failed, retrying with ${nextProvider}`)
+          console.log(`Claude quota exceeded, retrying with ${nextProvider}`)
           // Create new request with updated provider and pass attempted providers in header
           const bodyWithNewProvider = { ...body, provider: nextProvider, _attemptedProviders: Array.from(attemptedProviders) }
           const newRequest = new NextRequest(request.url, {
@@ -367,8 +375,10 @@ When asked about your identity, always identify yourself as Claude (made by Anth
           return POST(newRequest)
         }
         
+        // For non-quota errors, just log and return error (don't switch providers)
+        console.error('Claude API non-quota error, not switching providers')
         return NextResponse.json(
-          { error: 'Failed to process request with Claude API' },
+          { error: `Failed to process request with Claude API: ${error?.message || 'Unknown error'}` },
           { status: 500 },
         )
       }

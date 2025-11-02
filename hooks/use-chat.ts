@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStreaming } from '@/contexts/streaming-context'
+import { useProvider } from '@/contexts/provider-context'
 import useSWR, { mutate } from 'swr'
 
 interface Chat {
@@ -25,6 +26,7 @@ interface ChatMessage {
 export function useChat(chatId: string) {
   const router = useRouter()
   const { handoff, clearHandoff } = useStreaming()
+  const { provider, streaming } = useProvider()
   const [message, setMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
@@ -106,7 +108,7 @@ export function useChat(chatId: string) {
     setChatHistory((prev) => [...prev, { type: 'user', content: userMessage }])
 
     try {
-      // Use streaming mode
+      // Use streaming mode with provider from context
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -115,7 +117,8 @@ export function useChat(chatId: string) {
         body: JSON.stringify({
           message: userMessage,
           chatId: chatId,
-          streaming: true,
+          streaming: streaming ?? true,
+          provider: provider || 'v0',
           ...(attachments && attachments.length > 0 && { attachments }),
         }),
       })
