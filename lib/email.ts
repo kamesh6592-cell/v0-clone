@@ -24,7 +24,15 @@ export async function sendQuotaExhaustedEmail(
       to: 'kamesh6592@gmail.com',
       subject: `⚠️ ${provider.toUpperCase()} API Quota Exhausted`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <!-- Logo Header -->
+          <div style="text-align: center; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
+            <div style="display: inline-block; background: rgba(255,255,255,0.95); padding: 15px 30px; border-radius: 12px;">
+              <h1 style="margin: 0; font-size: 32px; font-weight: bold; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">AJ STUDIOZ</h1>
+              <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 12px; font-weight: 600; letter-spacing: 1px;">AI DEVELOPMENT PLATFORM</p>
+            </div>
+          </div>
+          
           <h2 style="color: #dc2626;">API Quota Alert</h2>
           <p>The <strong>${provider}</strong> API provider has exhausted its quota.</p>
           
@@ -183,7 +191,15 @@ export async function sendUserRegistrationEmail(
       to: userDetails.email,
       subject: '🎉 Welcome to AJ STUDIOZ - Registration Successful!',
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <!-- Logo Header -->
+          <div style="text-align: center; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); border-radius: 12px;">
+            <div style="display: inline-block; background: rgba(255,255,255,0.95); padding: 15px 30px; border-radius: 12px;">
+              <h1 style="margin: 0; font-size: 32px; font-weight: bold; background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">AJ STUDIOZ</h1>
+              <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 12px; font-weight: 600; letter-spacing: 1px;">AI DEVELOPMENT PLATFORM</p>
+            </div>
+          </div>
+          
           <div style="text-align: center; padding: 20px 0;">
             <h1 style="color: #16a34a; margin: 0;">🎉 Congratulations!</h1>
           </div>
@@ -315,7 +331,15 @@ export async function sendUserLoginEmail(
       to: userDetails.email,
       subject: '👋 Welcome Back to AJ STUDIOZ!',
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <!-- Logo Header -->
+          <div style="text-align: center; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); border-radius: 12px;">
+            <div style="display: inline-block; background: rgba(255,255,255,0.95); padding: 15px 30px; border-radius: 12px;">
+              <h1 style="margin: 0; font-size: 32px; font-weight: bold; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">AJ STUDIOZ</h1>
+              <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 12px; font-weight: 600; letter-spacing: 1px;">AI DEVELOPMENT PLATFORM</p>
+            </div>
+          </div>
+          
           <h2 style="color: #2563eb;">Welcome Back!</h2>
           
           <p style="color: #374151; font-size: 16px;">
