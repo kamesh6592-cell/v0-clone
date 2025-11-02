@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, ChatDetail } from 'v0-sdk'
-import Anthropic from '@anthropic-ai/sdk'
+import { streamText } from 'ai'
+import { createAnthropic } from '@ai-sdk/anthropic'
+import { createXai } from '@ai-sdk/xai'
 import { auth } from '@/app/(auth)/auth'
 import {
   createChatOwnership,
@@ -212,9 +214,9 @@ export async function POST(request: NextRequest) {
 
     let chat
 
-    // Handle Claude API requests
+    // Handle Claude API requests  
     if (provider === 'claude') {
-      console.log('Using Claude API for message:', message)
+      console.log('🔵 Using Claude API for message:', message)
       
       if (!process.env.ANTHROPIC_API_KEY) {
         return NextResponse.json(
@@ -224,24 +226,52 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        const anthropic = new Anthropic({
+        const anthropicProvider = createAnthropic({
           apiKey: process.env.ANTHROPIC_API_KEY,
         })
         
-        const systemPrompt = `You are Claude, an AI assistant created by Anthropic. You are an expert React developer. Generate React components and applications based on user requests. Focus on creating clean, modern, and functional code using React best practices, TypeScript, and Tailwind CSS.
+        const systemPrompt = `You are Claude, an AI assistant created by Anthropic. You are an expert React developer with extensive knowledge of modern web development.
 
-When asked about your identity, always identify yourself as Claude (made by Anthropic), not v0 or any other AI.`
+Your responsibilities:
+1. Generate clean, production-ready React components using TypeScript and Tailwind CSS
+2. Follow React best practices and modern patterns (hooks, composition, etc.)
+3. Write semantic, accessible HTML
+4. Include proper error handling and loading states
+5. Add helpful comments for complex logic
 
-        // Use native Anthropic SDK for streaming
-        console.log('Calling Claude API with model: claude-sonnet-4-20250514')
+When asked about your identity, always identify yourself as Claude (made by Anthropic), not v0 or any other AI.
+
+Respond conversationally for questions, but provide complete, working code for component requests.`
+
+        console.log('📡 Calling Claude API with model: claude-sonnet-4-20250514')
 
         if (streaming) {
-          // Create a custom stream that wraps Claude's text in v0's format
+          // Use AI SDK streamText for proper streaming
+          const result = await streamText({
+            model: anthropicProvider('claude-sonnet-4-20250514'),
+            messages: [
+              {
+                role: 'system',
+                content: systemPrompt,
+              },
+              {
+                role: 'user',
+                content: message,
+              },
+            ],
+            temperature: 0.7,
+          })
+
+          console.log('� Claude stream initiated')
+
+          // Convert AI SDK stream to v0-compatible format
           const encoder = new TextEncoder()
+          let fullText = ''
+          
           const customStream = new ReadableStream({
             async start(controller) {
               try {
-                // Send initial chat metadata with provider info
+                // Send initial metadata
                 const chatId = `claude-${Date.now()}`
                 const initialData = {
                   object: 'chat',
@@ -252,73 +282,46 @@ When asked about your identity, always identify yourself as Claude (made by Anth
                   provider: 'claude'
                 }
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`))
-                
-                console.log('📤 Sent initial Claude metadata:', initialData)
+                console.log('� Sent Claude initial metadata')
 
-                // Create Claude stream
-                const stream = await anthropic.messages.stream({
-                  model: 'claude-sonnet-4-20250514',
-                  max_tokens: 4096,
-                  temperature: 0.7,
-                  system: systemPrompt,
-                  messages: [
-                    {
-                      role: 'user',
-                      content: message,
-                    },
-                  ],
-                })
-
-                // Stream the text content
-                let accumulatedText = ''
+                // Stream text chunks
                 let chunkCount = 0
-                
-                console.log('🔵 Starting Claude stream...')
-                
-                for await (const event of stream) {
-                  console.log('📦 Claude event type:', event.type)
+                for await (const textPart of result.textStream) {
+                  fullText += textPart
+                  chunkCount++
                   
-                  if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-                    const textPart = event.delta.text
-                    accumulatedText += textPart
-                    chunkCount++
-                    
-                    console.log(`📝 Claude chunk #${chunkCount}:`, textPart.substring(0, 50) + (textPart.length > 50 ? '...' : ''))
-                    
-                    // Match v0's exact format with experimental_content
-                    const chunkData = {
-                      object: 'chat.message.delta',
-                      delta: {
-                        content: textPart,
-                        experimental_content: [
-                          {
-                            type: 'text',
-                            text: textPart
-                          }
-                        ]
-                      }
+                  console.log(`📝 Claude chunk #${chunkCount}:`, textPart.substring(0, 50))
+                  
+                  const chunkData = {
+                    object: 'chat.message.delta',
+                    delta: {
+                      content: textPart,
+                      experimental_content: [
+                        {
+                          type: 'text',
+                          text: textPart
+                        }
+                      ]
                     }
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`))
-                    console.log('📤 Sent Claude chunk:', chunkData)
                   }
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`))
                 }
 
                 console.log('✅ Claude stream completed')
                 console.log('📊 Total chunks:', chunkCount)
-                console.log('📊 Total text length:', accumulatedText.length)
-                console.log('📝 First 100 chars:', accumulatedText.substring(0, 100))
+                console.log('📊 Total text:', fullText.length, 'chars')
 
-                // Send final message
+                // Send completion message
                 const finalData = {
                   object: 'chat.message.completed',
                   message: {
                     id: `msg-${Date.now()}`,
                     role: 'assistant',
-                    content: accumulatedText,
+                    content: fullText,
                     experimental_content: [
                       {
                         type: 'text',
-                        text: accumulatedText
+                        text: fullText
                       }
                     ]
                   }
@@ -327,7 +330,7 @@ When asked about your identity, always identify yourself as Claude (made by Anth
                 controller.enqueue(encoder.encode('data: [DONE]\n\n'))
                 controller.close()
               } catch (error) {
-                console.error('Claude stream error:', error)
+                console.error('❌ Claude stream error:', error)
                 controller.error(error)
               }
             }
@@ -342,24 +345,23 @@ When asked about your identity, always identify yourself as Claude (made by Anth
           })
         }
 
-        // Collect the full response for non-streaming mode
-        const messageResponse = await anthropic.messages.create({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
-          temperature: 0.7,
-          system: systemPrompt,
+        // Non-streaming mode with AI SDK
+        const result = await streamText({
+          model: anthropicProvider('claude-sonnet-4-20250514'),
           messages: [
+            {
+              role: 'system',
+              content: systemPrompt,
+            },
             {
               role: 'user',
               content: message,
             },
           ],
+          temperature: 0.7,
         })
 
-        const fullText = messageResponse.content
-          .filter((block: any) => block.type === 'text')
-          .map((block: any) => block.text)
-          .join('')
+        const fullText = await result.text
 
         // Create a mock chat response that matches v0's structure
         const mockChat = {
@@ -449,7 +451,7 @@ When asked about your identity, always identify yourself as Claude (made by Anth
 
     // Handle Grok (xAI) API requests
     if (provider === 'grok') {
-      console.log('Using Grok (xAI) API for message:', message)
+      console.log('🟢 Using Grok (xAI) API for message:', message)
 
       if (!process.env.XAI_API_KEY) {
         return NextResponse.json(
@@ -459,20 +461,52 @@ When asked about your identity, always identify yourself as Claude (made by Anth
       }
 
       try {
-        const systemPrompt = `You are Grok, an AI assistant created by xAI (Elon Musk's company). You are an expert React developer. Generate React components and applications based on user requests. Focus on creating clean, modern, and functional code using React best practices, TypeScript, and Tailwind CSS.
+        const grokProvider = createXai({
+          apiKey: process.env.XAI_API_KEY,
+        })
+        
+        const systemPrompt = `You are Grok, an AI assistant created by xAI (Elon Musk's company). You are an expert React developer with deep knowledge of modern web technologies.
 
-When asked about your identity, always identify yourself as Grok (made by xAI), not v0 or any other AI.`
+Your responsibilities:
+1. Generate clean, production-ready React components using TypeScript and Tailwind CSS
+2. Follow React best practices and modern patterns (hooks, composition, etc.)
+3. Write semantic, accessible HTML
+4. Include proper error handling and loading states
+5. Add helpful comments for complex logic
 
-        // Use native xAI API with fetch for streaming
-        console.log('Calling Grok API with model: grok-beta')
+When asked about your identity, always identify yourself as Grok (made by xAI), not v0 or any other AI.
+
+Respond conversationally for questions, but provide complete, working code for component requests.`
+
+        console.log('📡 Calling Grok API with model: grok-beta')
 
         if (streaming) {
-          // Create a custom stream that wraps Grok's text in v0's format
+          // Use AI SDK streamText for proper streaming
+          const result = await streamText({
+            model: grokProvider('grok-beta'),
+            messages: [
+              {
+                role: 'system',
+                content: systemPrompt,
+              },
+              {
+                role: 'user',
+                content: message,
+              },
+            ],
+            temperature: 0.7,
+          })
+
+          console.log('� Grok stream initiated')
+
+          // Convert AI SDK stream to v0-compatible format
           const encoder = new TextEncoder()
+          let fullText = ''
+          
           const customStream = new ReadableStream({
             async start(controller) {
               try {
-                // Send initial chat metadata with provider info
+                // Send initial metadata
                 const chatId = `grok-${Date.now()}`
                 const initialData = {
                   object: 'chat',
@@ -483,99 +517,46 @@ When asked about your identity, always identify yourself as Grok (made by xAI), 
                   provider: 'grok'
                 }
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`))
-                
-                console.log('📤 Sent initial Grok metadata:', initialData)
+                console.log('� Sent Grok initial metadata')
 
-                // Call xAI API directly
-                const response = await fetch('https://api.x.ai/v1/chat/completions', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.XAI_API_KEY}`,
-                  },
-                  body: JSON.stringify({
-                    model: 'grok-beta',
-                    messages: [
-                      { role: 'system', content: systemPrompt },
-                      { role: 'user', content: message },
-                    ],
-                    temperature: 0.7,
-                    stream: true,
-                  }),
-                })
-
-                if (!response.ok) {
-                  throw new Error(`xAI API error: ${response.status} ${response.statusText}`)
-                }
-
-                // Parse SSE stream
-                const reader = response.body?.getReader()
-                if (!reader) throw new Error('No response body')
-
-                const decoder = new TextDecoder()
-                let accumulatedText = ''
+                // Stream text chunks
                 let chunkCount = 0
-
-                console.log('🟢 Starting Grok stream...')
-
-                while (true) {
-                  const { done, value } = await reader.read()
-                  if (done) break
-
-                  const chunk = decoder.decode(value, { stream: true })
-                  const lines = chunk.split('\n').filter(line => line.trim().startsWith('data: '))
-
-                  for (const line of lines) {
-                    const data = line.replace('data: ', '').trim()
-                    if (data === '[DONE]') continue
-                    
-                    try {
-                      const parsed = JSON.parse(data)
-                      const content = parsed.choices?.[0]?.delta?.content
-                      if (content) {
-                        accumulatedText += content
-                        chunkCount++
-                        
-                        console.log(`📝 Grok chunk #${chunkCount}:`, content.substring(0, 50) + (content.length > 50 ? '...' : ''))
-                        
-                        // Match v0's exact format with experimental_content
-                        const chunkData = {
-                          object: 'chat.message.delta',
-                          delta: {
-                            content: content,
-                            experimental_content: [
-                              {
-                                type: 'text',
-                                text: content
-                              }
-                            ]
-                          }
+                for await (const textPart of result.textStream) {
+                  fullText += textPart
+                  chunkCount++
+                  
+                  console.log(`📝 Grok chunk #${chunkCount}:`, textPart.substring(0, 50))
+                  
+                  const chunkData = {
+                    object: 'chat.message.delta',
+                    delta: {
+                      content: textPart,
+                      experimental_content: [
+                        {
+                          type: 'text',
+                          text: textPart
                         }
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`))
-                        console.log('📤 Sent Grok chunk:', chunkData)
-                      }
-                    } catch (e) {
-                      console.log('⚠️ Grok parse error:', e)
+                      ]
                     }
                   }
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`))
                 }
 
                 console.log('✅ Grok stream completed')
                 console.log('📊 Total chunks:', chunkCount)
-                console.log('📊 Total text length:', accumulatedText.length)
-                console.log('📝 First 100 chars:', accumulatedText.substring(0, 100))
+                console.log('📊 Total text:', fullText.length, 'chars')
 
-                // Send final message
+                // Send completion message
                 const finalData = {
                   object: 'chat.message.completed',
                   message: {
                     id: `msg-${Date.now()}`,
                     role: 'assistant',
-                    content: accumulatedText,
+                    content: fullText,
                     experimental_content: [
                       {
                         type: 'text',
-                        text: accumulatedText
+                        text: fullText
                       }
                     ]
                   }
@@ -584,7 +565,7 @@ When asked about your identity, always identify yourself as Grok (made by xAI), 
                 controller.enqueue(encoder.encode('data: [DONE]\n\n'))
                 controller.close()
               } catch (error) {
-                console.error('Grok stream error:', error)
+                console.error('❌ Grok stream error:', error)
                 controller.error(error)
               }
             }
@@ -599,30 +580,23 @@ When asked about your identity, always identify yourself as Grok (made by xAI), 
           })
         }
 
-        // Non-streaming mode
-        const response = await fetch('https://api.x.ai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.XAI_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: 'grok-beta',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: message },
-            ],
-            temperature: 0.7,
-            stream: false,
-          }),
+        // Non-streaming mode with AI SDK
+        const result = await streamText({
+          model: grokProvider('grok-beta'),
+          messages: [
+            {
+              role: 'system',
+              content: systemPrompt,
+            },
+            {
+              role: 'user',
+              content: message,
+            },
+          ],
+          temperature: 0.7,
         })
 
-        if (!response.ok) {
-          throw new Error(`xAI API error: ${response.status} ${response.statusText}`)
-        }
-
-        const data = await response.json()
-        const fullText = data.choices?.[0]?.message?.content || ''
+        const fullText = await result.text
 
         // Create a mock chat response that matches v0's structure
         const mockChat = {
