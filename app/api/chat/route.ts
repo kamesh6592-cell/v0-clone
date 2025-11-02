@@ -24,7 +24,16 @@ const v0 = createClient(
 function replacePreviewDomain(url: string | null | undefined): string | null | undefined {
   if (!url) return url
   const customDomain = process.env.NEXT_PUBLIC_PREVIEW_DOMAIN || 'dev.ajstudioz.co.in'
-  // Replace any vusercontent.net domain with custom domain
+  
+  // Extract the demo ID from URLs like: https://demo-kzmm5r7w08bcjq8epb91.vusercontent.net
+  const match = url.match(/https?:\/\/demo-([^\.]+)\.vusercontent\.net/)
+  if (match) {
+    const demoId = match[1]
+    // Return as: https://dev.ajstudioz.co.in/api/preview/demo-id
+    return `https://${customDomain}/api/preview/${demoId}`
+  }
+  
+  // Fallback: just replace the domain
   return url.replace(/https?:\/\/[^\/]*\.vusercontent\.net/g, `https://${customDomain}`)
 }
 
@@ -77,6 +86,10 @@ function wrapV0StreamWithProvider(originalStream: ReadableStream<Uint8Array>, pr
                   const data = JSON.parse(lines[i].substring(6))
                   if (data.object === 'chat' && !data.provider) {
                     data.provider = provider
+                    // Replace preview domain if demo URL exists
+                    if (data.demo) {
+                      data.demo = replacePreviewDomain(data.demo)
+                    }
                     lines[i] = `data: ${JSON.stringify(data)}`
                     modified = true
                     break

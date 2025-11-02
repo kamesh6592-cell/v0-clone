@@ -15,7 +15,6 @@ interface CodeViewerProps {
 }
 
 export function CodeViewer({ code, language = 'tsx', filename = 'component.tsx', className }: CodeViewerProps) {
-  const [isOpen, setIsOpen] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
@@ -47,25 +46,6 @@ export function CodeViewer({ code, language = 'tsx', filename = 'component.tsx',
   }
 
   return (
-    <>
-      {/* Floating Code Button */}
-      <Button
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          'fixed bottom-6 right-6 z-50 h-12 w-12 rounded-full shadow-2xl',
-          'bg-gradient-to-r from-indigo-600 to-purple-600',
-          'hover:from-indigo-700 hover:to-purple-700',
-          'transition-all duration-200 hover:scale-110',
-          'pulse-glow',
-          className
-        )}
-        title="View Code"
-      >
-        <Code2 className="h-5 w-5 text-white" />
-      </Button>
-
-      {/* Code Panel Overlay */}
-      {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-6xl h-[80vh] glass-effect rounded-2xl shadow-2xl border border-white/10 flex flex-col overflow-hidden">
             {/* Header */}
@@ -105,14 +85,7 @@ export function CodeViewer({ code, language = 'tsx', filename = 'component.tsx',
                   <Download className="h-4 w-4 mr-2" />
                   Download
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsOpen(false)}
-                  className="h-9 w-9 p-0 hover:bg-white/10 text-gray-300"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+
               </div>
             </div>
 
@@ -140,7 +113,5 @@ export function CodeViewer({ code, language = 'tsx', filename = 'component.tsx',
             </div>
           </div>
         </div>
-      )}
-    </>
   )
 }

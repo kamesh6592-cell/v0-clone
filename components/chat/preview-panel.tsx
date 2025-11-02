@@ -5,8 +5,10 @@ import {
   WebPreviewUrl,
   WebPreviewBody,
 } from '@/components/ai-elements/web-preview'
-import { RefreshCw, Monitor, Maximize, Minimize } from 'lucide-react'
+import { RefreshCw, Monitor, Maximize, Minimize, Code2, Smartphone, Tablet, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CodeViewer } from '@/components/chat/code-viewer'
+import { useState } from 'react'
 
 interface Chat {
   id: string
@@ -20,6 +22,7 @@ interface PreviewPanelProps {
   setIsFullscreen: (fullscreen: boolean) => void
   refreshKey: number
   setRefreshKey: (key: number | ((prev: number) => number)) => void
+  generatedCode?: string
 }
 
 export function PreviewPanel({
@@ -28,7 +31,17 @@ export function PreviewPanel({
   setIsFullscreen,
   refreshKey,
   setRefreshKey,
+  generatedCode,
 }: PreviewPanelProps) {
+  const [viewportMode, setViewportMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
+  const [showCode, setShowCode] = useState(false)
+
+  const viewportWidths = {
+    desktop: '100%',
+    tablet: '768px',
+    mobile: '375px',
+  }
+
   return (
     <div
       className={cn(
@@ -44,6 +57,34 @@ export function PreviewPanel({
         }}
       >
         <WebPreviewNavigation>
+          {/* Viewport Mode Toggles */}
+          <div className="flex items-center gap-1 border-r border-border pr-2 mr-2">
+            <WebPreviewNavigationButton
+              onClick={() => setViewportMode('desktop')}
+              tooltip="Desktop view"
+              disabled={!currentChat?.demo}
+              className={cn(viewportMode === 'desktop' && 'bg-accent')}
+            >
+              <Monitor className="h-4 w-4" />
+            </WebPreviewNavigationButton>
+            <WebPreviewNavigationButton
+              onClick={() => setViewportMode('tablet')}
+              tooltip="Tablet view"
+              disabled={!currentChat?.demo}
+              className={cn(viewportMode === 'tablet' && 'bg-accent')}
+            >
+              <Tablet className="h-4 w-4" />
+            </WebPreviewNavigationButton>
+            <WebPreviewNavigationButton
+              onClick={() => setViewportMode('mobile')}
+              tooltip="Mobile view"
+              disabled={!currentChat?.demo}
+              className={cn(viewportMode === 'mobile' && 'bg-accent')}
+            >
+              <Smartphone className="h-4 w-4" />
+            </WebPreviewNavigationButton>
+          </div>
+
           <WebPreviewNavigationButton
             onClick={() => {
               // Force refresh the iframe by updating the refresh key
@@ -54,11 +95,34 @@ export function PreviewPanel({
           >
             <RefreshCw className="h-4 w-4" />
           </WebPreviewNavigationButton>
+          
           <WebPreviewUrl
             readOnly
             placeholder="Your app will appear here..."
             value={currentChat?.demo || ''}
           />
+
+          {/* Code View Toggle */}
+          {generatedCode && (
+            <WebPreviewNavigationButton
+              onClick={() => setShowCode(!showCode)}
+              tooltip={showCode ? 'Hide code' : 'View code'}
+              className={cn(showCode && 'bg-accent')}
+            >
+              <Code2 className="h-4 w-4" />
+            </WebPreviewNavigationButton>
+          )}
+
+          {/* Open in New Tab */}
+          {currentChat?.demo && (
+            <WebPreviewNavigationButton
+              onClick={() => window.open(currentChat.demo, '_blank')}
+              tooltip="Open in new tab"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </WebPreviewNavigationButton>
+          )}
+
           <WebPreviewNavigationButton
             onClick={() => setIsFullscreen(!isFullscreen)}
             tooltip={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
@@ -72,7 +136,18 @@ export function PreviewPanel({
           </WebPreviewNavigationButton>
         </WebPreviewNavigation>
         {currentChat?.demo ? (
-          <WebPreviewBody key={refreshKey} src={currentChat.demo} />
+          <div className="flex-1 flex justify-center items-center bg-gray-100 dark:bg-gray-950 overflow-auto">
+            <div
+              style={{
+                width: viewportWidths[viewportMode],
+                height: '100%',
+                transition: 'width 0.3s ease',
+              }}
+              className="shadow-2xl"
+            >
+              <WebPreviewBody key={refreshKey} src={currentChat.demo} className="w-full h-full" />
+            </div>
+          </div>
         ) : (
           <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-black">
             <div className="text-center">
@@ -86,6 +161,23 @@ export function PreviewPanel({
           </div>
         )}
       </WebPreview>
+
+      {/* Code Viewer Modal */}
+      {showCode && generatedCode && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <CodeViewer 
+            code={generatedCode} 
+            language="tsx" 
+            filename="component.tsx" 
+          />
+          <button
+            onClick={() => setShowCode(false)}
+            className="absolute top-4 right-4 p-2 rounded-lg glass-effect hover:bg-white/10 transition-colors"
+          >
+            <Minimize className="h-5 w-5 text-gray-300" />
+          </button>
+        </div>
+      )}
     </div>
   )
 }
