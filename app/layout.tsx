@@ -18,12 +18,12 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'AJ STUDIOZ - AI Component Generator',
+  title: 'AJ STUDIOZ',
   description:
     'Generate and preview React components with AI - Built with v0 SDK and Claude API',
   icons: {
-    icon: '/favicon.svg',
-    shortcut: '/favicon.svg',
+    icon: '/aj-logo.jpg',
+    shortcut: '/aj-logo.jpg',
     apple: '/aj-logo.jpg',
   },
 }

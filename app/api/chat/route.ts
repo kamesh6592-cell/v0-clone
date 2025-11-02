@@ -234,10 +234,13 @@ When asked about your identity, always identify yourself as Claude (made by Anth
                   object: 'chat',
                   id: chatId,
                   demo: null,
+                  url: null,
                   messages: [],
                   provider: 'claude'
                 }
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`))
+                
+                console.log('📤 Sent initial Claude metadata:', initialData)
 
                 // Create Claude stream
                 const stream = await anthropic.messages.stream({
@@ -269,13 +272,21 @@ When asked about your identity, always identify yourself as Claude (made by Anth
                     
                     console.log(`📝 Claude chunk #${chunkCount}:`, textPart.substring(0, 50) + (textPart.length > 50 ? '...' : ''))
                     
+                    // Match v0's exact format with experimental_content
                     const chunkData = {
                       object: 'chat.message.delta',
                       delta: {
-                        content: textPart
+                        content: textPart,
+                        experimental_content: [
+                          {
+                            type: 'text',
+                            text: textPart
+                          }
+                        ]
                       }
                     }
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`))
+                    console.log('📤 Sent Claude chunk:', chunkData)
                   }
                 }
 
@@ -454,10 +465,13 @@ When asked about your identity, always identify yourself as Grok (made by xAI), 
                   object: 'chat',
                   id: chatId,
                   demo: null,
+                  url: null,
                   messages: [],
                   provider: 'grok'
                 }
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`))
+                
+                console.log('📤 Sent initial Grok metadata:', initialData)
 
                 // Call xAI API directly
                 const response = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -511,13 +525,21 @@ When asked about your identity, always identify yourself as Grok (made by xAI), 
                         
                         console.log(`📝 Grok chunk #${chunkCount}:`, content.substring(0, 50) + (content.length > 50 ? '...' : ''))
                         
+                        // Match v0's exact format with experimental_content
                         const chunkData = {
                           object: 'chat.message.delta',
                           delta: {
-                            content: content
+                            content: content,
+                            experimental_content: [
+                              {
+                                type: 'text',
+                                text: content
+                              }
+                            ]
                           }
                         }
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`))
+                        console.log('📤 Sent Grok chunk:', chunkData)
                       }
                     } catch (e) {
                       console.log('⚠️ Grok parse error:', e)
