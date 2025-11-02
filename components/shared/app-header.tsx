@@ -10,6 +10,8 @@ import { UserNav } from '@/components/user-nav'
 import { Button } from '@/components/ui/button'
 import { AJStudiozLogo } from '@/components/ui/icons'
 import { useProvider } from '@/contexts/provider-context'
+import { useTheme } from '@/contexts/theme-context'
+import { Moon, Sun } from 'lucide-react'
 
 interface AppHeaderProps {
   className?: string
@@ -42,6 +44,7 @@ export function AppHeader({ className = '' }: AppHeaderProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
   const { provider, setProvider, streaming, setStreaming } = useProvider()
+  const { theme, toggleTheme } = useTheme()
   const isHomepage = pathname === '/'
 
   // Handle logo click - reset UI if on homepage, otherwise navigate to homepage
@@ -132,12 +135,27 @@ export function AppHeader({ className = '' }: AppHeaderProps) {
                 className={`h-9 px-4 text-xs font-semibold transition-all duration-200 rounded-lg ${
                   streaming
                     ? 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-md pulse-glow'
-                    : 'glass-effect hover:bg-white/5 text-gray-300 border-white/10'
+                    : 'glass-effect hover:bg-white/5 text-gray-300 dark:text-gray-300 text-gray-700 border-white/10'
                 }`}
               >
                 {streaming ? '⚡ Streaming' : '○ Streaming'}
               </Button>
             )}
+
+            {/* Theme Toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleTheme}
+              className="h-9 w-9 p-0 glass-effect hover:bg-white/10 border border-white/10 rounded-lg transition-all duration-200"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-4 w-4 text-yellow-400 transition-transform hover:rotate-180 duration-500" />
+              ) : (
+                <Moon className="h-4 w-4 text-indigo-600 transition-transform hover:-rotate-12 duration-500" />
+              )}
+            </Button>
 
             <UserNav session={session} />
           </div>

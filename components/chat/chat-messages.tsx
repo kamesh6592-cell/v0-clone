@@ -4,7 +4,7 @@ import {
   Conversation,
   ConversationContent,
 } from '@/components/ai-elements/conversation'
-import { Loader } from '@/components/ai-elements/loader'
+import { TypingIndicator } from '@/components/ai-elements/typing-indicator'
 import { MessageRenderer } from '@/components/message-renderer'
 import { sharedComponents } from '@/components/shared-components'
 import { StreamingMessage } from '@v0-sdk/react'
@@ -101,10 +101,9 @@ export function ChatMessages({
             )
           })}
           {isLoading && (
-            <div className="flex justify-center py-8">
-              <div className="flex items-center gap-3 glass-effect px-6 py-3 rounded-full">
-                <Loader size={16} className="text-indigo-400" />
-                <span className="text-sm text-gray-400">AI is thinking...</span>
+            <div className="flex justify-start animate-fade-in">
+              <div className="glass-effect rounded-2xl shadow-xl max-w-[200px]">
+                <TypingIndicator />
               </div>
             </div>
           )}

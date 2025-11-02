@@ -563,11 +563,12 @@ export function HomeClient() {
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Bolt.new style animated background gradient */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}} />
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}} />
+      {/* Bolt.new style animated background gradient orbs */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/20 dark:bg-purple-500/20 bg-purple-300/30 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/20 dark:bg-indigo-500/20 bg-indigo-300/30 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-500/10 dark:bg-blue-500/10 bg-blue-300/20 rounded-full blur-3xl animate-float" style={{animationDelay: '4s'}} />
+        <div className="absolute top-1/4 right-1/3 w-72 h-72 bg-pink-500/15 dark:bg-pink-500/15 bg-pink-300/25 rounded-full blur-3xl animate-float" style={{animationDelay: '1s'}} />
       </div>
       
       {/* Handle search params with Suspense boundary */}

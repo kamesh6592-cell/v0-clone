@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { StreamingProvider } from '@/contexts/streaming-context'
 import { ProviderProvider } from '@/contexts/provider-context'
+import { ThemeProvider } from '@/contexts/theme-context'
 import { SWRProvider } from '@/components/providers/swr-provider'
 import { SessionProvider } from '@/components/providers/session-provider'
 
@@ -47,13 +48,15 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
       >
-        <SessionProvider>
-          <SWRProvider>
-            <ProviderProvider>
-              <StreamingProvider>{children}</StreamingProvider>
-            </ProviderProvider>
-          </SWRProvider>
-        </SessionProvider>
+        <ThemeProvider>
+          <SessionProvider>
+            <SWRProvider>
+              <ProviderProvider>
+                <StreamingProvider>{children}</StreamingProvider>
+              </ProviderProvider>
+            </SWRProvider>
+          </SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
