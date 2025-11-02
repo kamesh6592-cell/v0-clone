@@ -243,10 +243,11 @@ When asked about your identity, always identify yourself as Claude (made by Anth
 
 Respond conversationally for questions, but provide complete, working code for component requests.`
 
-        console.log('📡 Calling Claude API with model: claude-sonnet-4-20250514')
+        console.log('Calling Claude API with model: claude-sonnet-4-20250514')
 
-        if (streaming) {
-          // Use AI SDK streamText for proper streaming
+        // Always return complete response (streaming format incompatible with v0-sdk)
+        if (false) {
+          // Streaming disabled for Claude
           const result = await streamText({
             model: anthropicProvider('claude-sonnet-4-20250514'),
             messages: [
@@ -478,10 +479,11 @@ When asked about your identity, always identify yourself as Grok (made by xAI), 
 
 Respond conversationally for questions, but provide complete, working code for component requests.`
 
-        console.log('📡 Calling Grok API with model: grok-beta')
+        console.log('Calling Grok API with model: grok-beta')
 
-        if (streaming) {
-          // Use AI SDK streamText for proper streaming
+        // Always return complete response (streaming format incompatible with v0-sdk)
+        if (false) {
+          // Streaming disabled for Grok
           const result = await streamText({
             model: grokProvider('grok-beta'),
             messages: [
