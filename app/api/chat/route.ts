@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, ChatDetail } from 'v0-sdk'
-import { createAnthropic } from '@ai-sdk/anthropic'
-import { createXai } from '@ai-sdk/xai'
-import { streamText } from 'ai'
+import Anthropic from '@anthropic-ai/sdk'
 import { auth } from '@/app/(auth)/auth'
 import {
   createChatOwnership,
@@ -213,7 +211,7 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        const anthropicProvider = createAnthropic({
+        const anthropic = new Anthropic({
           apiKey: process.env.ANTHROPIC_API_KEY,
         })
         
@@ -221,24 +219,8 @@ export async function POST(request: NextRequest) {
 
 When asked about your identity, always identify yourself as Claude (made by Anthropic), not v0 or any other AI.`
 
-        // Use AI SDK for streaming with correct model name
+        // Use native Anthropic SDK for streaming
         console.log('Calling Claude API with model: claude-sonnet-4-20250514')
-        const result = await streamText({
-          model: anthropicProvider('claude-sonnet-4-20250514'),
-          messages: [
-            {
-              role: 'system',
-              content: systemPrompt,
-            },
-            {
-              role: 'user',
-              content: message,
-            },
-          ],
-          temperature: 0.7,
-        })
-        
-        console.log('Claude API called successfully')
 
         if (streaming) {
           // Create a custom stream that wraps Claude's text in v0's format
@@ -257,18 +239,37 @@ When asked about your identity, always identify yourself as Claude (made by Anth
                 }
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`))
 
+                // Create Claude stream
+                const stream = await anthropic.messages.stream({
+                  model: 'claude-sonnet-4-20250514',
+                  max_tokens: 4096,
+                  temperature: 0.7,
+                  system: systemPrompt,
+                  messages: [
+                    {
+                      role: 'user',
+                      content: message,
+                    },
+                  ],
+                })
+
                 // Stream the text content
                 let accumulatedText = ''
-                for await (const textPart of result.textStream) {
-                  accumulatedText += textPart
-                  const chunkData = {
-                    object: 'chat.message.delta',
-                    delta: {
-                      content: textPart
+                for await (const event of stream) {
+                  if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+                    const textPart = event.delta.text
+                    accumulatedText += textPart
+                    const chunkData = {
+                      object: 'chat.message.delta',
+                      delta: {
+                        content: textPart
+                      }
                     }
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`))
                   }
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`))
                 }
+
+                console.log('Claude stream completed with text length:', accumulatedText.length)
 
                 // Send final message
                 const finalData = {
@@ -289,7 +290,7 @@ When asked about your identity, always identify yourself as Claude (made by Anth
                 controller.enqueue(encoder.encode('data: [DONE]\n\n'))
                 controller.close()
               } catch (error) {
-                console.error('Stream error:', error)
+                console.error('Claude stream error:', error)
                 controller.error(error)
               }
             }
@@ -305,10 +306,23 @@ When asked about your identity, always identify yourself as Claude (made by Anth
         }
 
         // Collect the full response for non-streaming mode
-        let fullText = ''
-        for await (const textPart of result.textStream) {
-          fullText += textPart
-        }
+        const messageResponse = await anthropic.messages.create({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4096,
+          temperature: 0.7,
+          system: systemPrompt,
+          messages: [
+            {
+              role: 'user',
+              content: message,
+            },
+          ],
+        })
+
+        const fullText = messageResponse.content
+          .filter((block: any) => block.type === 'text')
+          .map((block: any) => block.text)
+          .join('')
 
         // Create a mock chat response that matches v0's structure
         const mockChat = {
@@ -408,32 +422,12 @@ When asked about your identity, always identify yourself as Claude (made by Anth
       }
 
       try {
-        const xaiProvider = createXai({
-          apiKey: process.env.XAI_API_KEY,
-        })
-        
         const systemPrompt = `You are Grok, an AI assistant created by xAI (Elon Musk's company). You are an expert React developer. Generate React components and applications based on user requests. Focus on creating clean, modern, and functional code using React best practices, TypeScript, and Tailwind CSS.
 
 When asked about your identity, always identify yourself as Grok (made by xAI), not v0 or any other AI.`
 
-        // Use AI SDK with xAI for streaming
+        // Use native xAI API with fetch for streaming
         console.log('Calling Grok API with model: grok-beta')
-        const result = await streamText({
-          model: xaiProvider('grok-beta'),
-          messages: [
-            {
-              role: 'system',
-              content: systemPrompt,
-            },
-            {
-              role: 'user',
-              content: message,
-            },
-          ],
-          temperature: 0.7,
-        })
-        
-        console.log('Grok API called successfully')
 
         if (streaming) {
           // Create a custom stream that wraps Grok's text in v0's format
@@ -452,18 +446,66 @@ When asked about your identity, always identify yourself as Grok (made by xAI), 
                 }
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`))
 
-                // Stream the text content
+                // Call xAI API directly
+                const response = await fetch('https://api.x.ai/v1/chat/completions', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.XAI_API_KEY}`,
+                  },
+                  body: JSON.stringify({
+                    model: 'grok-beta',
+                    messages: [
+                      { role: 'system', content: systemPrompt },
+                      { role: 'user', content: message },
+                    ],
+                    temperature: 0.7,
+                    stream: true,
+                  }),
+                })
+
+                if (!response.ok) {
+                  throw new Error(`xAI API error: ${response.status} ${response.statusText}`)
+                }
+
+                // Parse SSE stream
+                const reader = response.body?.getReader()
+                if (!reader) throw new Error('No response body')
+
+                const decoder = new TextDecoder()
                 let accumulatedText = ''
-                for await (const textPart of result.textStream) {
-                  accumulatedText += textPart
-                  const chunkData = {
-                    object: 'chat.message.delta',
-                    delta: {
-                      content: textPart
+
+                while (true) {
+                  const { done, value } = await reader.read()
+                  if (done) break
+
+                  const chunk = decoder.decode(value, { stream: true })
+                  const lines = chunk.split('\n').filter(line => line.trim().startsWith('data: '))
+
+                  for (const line of lines) {
+                    const data = line.replace('data: ', '').trim()
+                    if (data === '[DONE]') continue
+                    
+                    try {
+                      const parsed = JSON.parse(data)
+                      const content = parsed.choices?.[0]?.delta?.content
+                      if (content) {
+                        accumulatedText += content
+                        const chunkData = {
+                          object: 'chat.message.delta',
+                          delta: {
+                            content: content
+                          }
+                        }
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`))
+                      }
+                    } catch (e) {
+                      // Skip invalid JSON
                     }
                   }
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`))
                 }
+
+                console.log('Grok stream completed with text length:', accumulatedText.length)
 
                 // Send final message
                 const finalData = {
@@ -484,7 +526,7 @@ When asked about your identity, always identify yourself as Grok (made by xAI), 
                 controller.enqueue(encoder.encode('data: [DONE]\n\n'))
                 controller.close()
               } catch (error) {
-                console.error('Stream error:', error)
+                console.error('Grok stream error:', error)
                 controller.error(error)
               }
             }
@@ -499,11 +541,30 @@ When asked about your identity, always identify yourself as Grok (made by xAI), 
           })
         }
 
-        // Collect the full response for non-streaming mode
-        let fullText = ''
-        for await (const textPart of result.textStream) {
-          fullText += textPart
+        // Non-streaming mode
+        const response = await fetch('https://api.x.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.XAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'grok-beta',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: message },
+            ],
+            temperature: 0.7,
+            stream: false,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error(`xAI API error: ${response.status} ${response.statusText}`)
         }
+
+        const data = await response.json()
+        const fullText = data.choices?.[0]?.message?.content || ''
 
         // Create a mock chat response that matches v0's structure
         const mockChat = {

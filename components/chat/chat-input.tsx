@@ -117,11 +117,11 @@ export function ChatInput({
   )
 
   return (
-    <div className="px-4 md:pb-4">
+    <div className="px-4 md:pb-6">
       <div className="flex gap-2">
         <PromptInput
           onSubmit={handleSubmit}
-          className="w-full max-w-2xl mx-auto relative"
+          className="w-full max-w-3xl mx-auto relative glass-effect rounded-2xl shadow-2xl border border-white/10 overflow-hidden"
           onImageDrop={handleImageFiles}
           isDragOver={isDragOver}
           onDragOver={handleDragOver}
@@ -136,8 +136,8 @@ export function ChatInput({
             ref={textareaRef}
             onChange={(e) => setMessage(e.target.value)}
             value={message}
-            className="min-h-[60px]"
-            placeholder="Continue the conversation..."
+            className="min-h-[60px] text-base bg-transparent resize-none focus:outline-none"
+            placeholder="Ask me anything..."
           />
           <PromptInputToolbar>
             <PromptInputTools>
@@ -155,6 +155,7 @@ export function ChatInput({
               <PromptInputSubmit
                 disabled={!message}
                 status={isLoading ? 'streaming' : 'ready'}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg transition-all duration-200"
               />
             </PromptInputTools>
           </PromptInputToolbar>

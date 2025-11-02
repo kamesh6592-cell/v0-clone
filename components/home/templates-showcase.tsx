@@ -80,39 +80,40 @@ export function TemplatesShowcase({ onSelectTemplate }: TemplatesShowcaseProps) 
   const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      {/* Header */}
-      <div className="text-center mb-12">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 mb-4">
-          <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      {/* Header - Bolt.new style */}
+      <div className="text-center mb-16 animate-fade-in">
+        <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full glass-effect border border-white/10 mb-6">
+          <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
+          <span className="text-sm font-semibold gradient-text">
             Templates & Examples
           </span>
         </div>
-        <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-          Start with a Template
+        <h2 className="text-4xl md:text-5xl font-bold text-gray-100 mb-4">
+          Start with a <span className="gradient-text">Template</span>
         </h2>
-        <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+        <p className="text-lg text-gray-400 max-w-2xl mx-auto">
           Choose from our curated collection of templates or describe your own idea
         </p>
       </div>
 
-      {/* Templates Grid */}
+      {/* Templates Grid - Bolt.new style cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {templates.map((template) => (
+        {templates.map((template, index) => (
           <div
             key={template.id}
-            className="group relative bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] cursor-pointer"
+            className="group relative glass-effect rounded-2xl overflow-hidden border border-white/10 hover:border-indigo-500/50 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] cursor-pointer animate-fade-in"
+            style={{ animationDelay: `${index * 0.1}s` }}
             onMouseEnter={() => setHoveredId(template.id)}
             onMouseLeave={() => setHoveredId(null)}
             onClick={() => onSelectTemplate(template.prompt)}
           >
-            {/* Image/Preview */}
-            <div className={`relative h-48 overflow-hidden bg-gradient-to-br ${template.gradient}`}>
-              <div className={`absolute inset-0 bg-gradient-to-br ${template.gradient} opacity-20`} />
+            {/* Image/Preview - Bolt.new style */}
+            <div className={`relative h-56 overflow-hidden bg-gradient-to-br ${template.gradient}`}>
+              <div className="absolute inset-0 backdrop-blur-3xl opacity-60" />
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center text-white p-6">
-                  <div className={`text-6xl mb-2 transition-transform duration-300 ${hoveredId === template.id ? 'scale-110' : 'scale-100'}`}>
+                  <div className={`text-7xl mb-2 transition-all duration-500 ${hoveredId === template.id ? 'scale-125 rotate-6' : 'scale-100 rotate-0'}`}>
                     {template.category === 'Marketing' && '🚀'}
                     {template.category === 'E-commerce' && '🛍️'}
                     {template.category === 'Dashboard' && '📊'}
@@ -123,11 +124,11 @@ export function TemplatesShowcase({ onSelectTemplate }: TemplatesShowcaseProps) 
                 </div>
               </div>
               {/* Overlay on hover */}
-              <div className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center ${hoveredId === template.id ? 'opacity-100' : 'opacity-0'}`}>
+              <div className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center ${hoveredId === template.id ? 'opacity-100' : 'opacity-0'}`}>
                 <Button 
                   variant="secondary" 
                   size="sm"
-                  className="bg-white text-gray-900 hover:bg-gray-100"
+                  className="bg-white text-gray-900 hover:bg-gray-100 shadow-xl"
                 >
                   Use Template
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -136,29 +137,30 @@ export function TemplatesShowcase({ onSelectTemplate }: TemplatesShowcaseProps) 
             </div>
 
             {/* Content */}
-            <div className="p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md">
+            <div className="p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs font-bold text-indigo-400 glass-effect px-3 py-1.5 rounded-full border border-indigo-500/30">
                   {template.category}
                 </span>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              <h3 className="text-xl font-bold text-gray-100 mb-2">
                 {template.title}
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+              <p className="text-sm text-gray-400 line-clamp-2">
                 {template.description}
               </p>
             </div>
 
-            {/* Hover indicator */}
-            <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${template.gradient} transition-transform duration-300 ${hoveredId === template.id ? 'scale-x-100' : 'scale-x-0'}`} />
+            {/* Hover glow effect */}
+            <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${template.gradient} transition-all duration-300 ${hoveredId === template.id ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'}`} />
+            <div className={`absolute inset-0 bg-gradient-to-br ${template.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none`} />
           </div>
         ))}
       </div>
 
-      {/* CTA */}
-      <div className="mt-12 text-center">
-        <p className="text-gray-600 dark:text-gray-400 mb-4">
+      {/* CTA - Bolt.new style */}
+      <div className="mt-16 text-center">
+        <p className="text-gray-400 mb-6 text-lg">
           Can't find what you're looking for?
         </p>
         <Button
@@ -170,9 +172,9 @@ export function TemplatesShowcase({ onSelectTemplate }: TemplatesShowcaseProps) 
               textarea.focus()
             }
           }}
-          className="group"
+          className="group glass-effect border-white/20 hover:border-indigo-500/50 hover:bg-indigo-500/10 text-gray-300 hover:text-white px-8 py-6 text-base rounded-xl shadow-lg"
         >
-          <Sparkles className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
+          <Sparkles className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform text-indigo-400" />
           Describe your own idea
         </Button>
       </div>

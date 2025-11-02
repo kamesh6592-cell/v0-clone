@@ -5,13 +5,14 @@ import type { ComponentProps, HTMLAttributes } from 'react'
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage['role']
+  timestamp?: string
 }
 
-export const Message = ({ className, from, ...props }: MessageProps) => (
+export const Message = ({ className, from, timestamp, ...props }: MessageProps) => (
   <div
     className={cn(
-      'group flex w-full items-end justify-end gap-2 py-4',
-      from === 'user' ? 'is-user' : 'is-assistant flex-row-reverse justify-end',
+      'group flex w-full items-end gap-3 py-3 animate-fade-in',
+      from === 'user' ? 'is-user justify-end' : 'is-assistant flex-row-reverse justify-end',
       from === 'user' ? '[&>div]:max-w-[80%]' : '[&>div]:max-w-full',
       className,
     )}
@@ -19,23 +20,48 @@ export const Message = ({ className, from, ...props }: MessageProps) => (
   />
 )
 
-export type MessageContentProps = HTMLAttributes<HTMLDivElement>
+export type MessageContentProps = HTMLAttributes<HTMLDivElement> & {
+  timestamp?: string
+  from?: UIMessage['role']
+}
 
 export const MessageContent = ({
   children,
   className,
+  timestamp,
+  from,
   ...props
 }: MessageContentProps) => (
-  <div
-    className={cn(
-      'flex flex-col gap-2 overflow-hidden rounded-lg px-4 py-3 text-foreground text-sm',
-      'group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground group-[.is-user]:border-2 group-[.is-user]:border-blue-500 group-[.is-user]:shadow-sm',
-      'group-[.is-assistant]:bg-secondary group-[.is-assistant]:text-foreground',
-      className,
+  <div className="flex flex-col gap-1 w-full">
+    <div
+      className={cn(
+        'flex flex-col gap-2 overflow-hidden rounded-2xl px-5 py-3.5 text-sm message-bubble',
+        'transition-all duration-200 ease-out',
+        // User message - bolt.new style gradient bubble
+        'group-[.is-user]:bg-gradient-to-br group-[.is-user]:from-indigo-600 group-[.is-user]:to-purple-600',
+        'group-[.is-user]:text-white group-[.is-user]:shadow-lg',
+        'group-[.is-user]:border group-[.is-user]:border-white/20',
+        // Assistant message - glassmorphism effect
+        'group-[.is-assistant]:glass-effect group-[.is-assistant]:text-gray-100',
+        'group-[.is-assistant]:shadow-xl',
+        className,
+      )}
+      {...props}
+    >
+      <div className="prose prose-invert prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+        {children}
+      </div>
+    </div>
+    {timestamp && (
+      <div
+        className={cn(
+          'text-xs text-gray-500 px-2 flex items-center gap-1',
+          from === 'user' ? 'justify-end' : 'justify-start',
+        )}
+      >
+        <span>{timestamp}</span>
+      </div>
     )}
-    {...props}
-  >
-    <div className="is-user:dark">{children}</div>
   </div>
 )
 

@@ -562,7 +562,14 @@ export function HomeClient() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black flex flex-col">
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      {/* Bolt.new style animated background gradient */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}} />
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}} />
+      </div>
+      
       {/* Handle search params with Suspense boundary */}
       <Suspense fallback={null}>
         <SearchParamsHandler onReset={handleReset} />
@@ -570,30 +577,36 @@ export function HomeClient() {
 
       <AppHeader />
 
-      {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+      {/* Main Content - Bolt.new Hero Style */}
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-4xl w-full">
-          <div className="text-center mb-8 md:mb-12">
-            <div className="flex justify-center items-center gap-3 mb-4">
-              <img
-                src="/aj-logo.jpg"
-                alt="AJ STUDIOZ"
-                className="w-12 h-12 md:w-16 md:h-16 rounded-lg"
-              />
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+          <div className="text-center mb-8 md:mb-12 space-y-6 animate-fade-in">
+            <div className="flex justify-center items-center gap-4 mb-6">
+              <div className="relative">
+                <img
+                  src="/aj-logo.jpg"
+                  alt="AJ STUDIOZ"
+                  className="w-16 h-16 md:w-20 md:h-20 rounded-2xl shadow-2xl ring-2 ring-white/20"
+                />
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 blur-lg" />
+              </div>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold gradient-text">
                 AJ STUDIOZ
               </h1>
             </div>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-700 dark:text-gray-300 mb-4">
-              What can we build together?
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-100 mb-3">
+              What can we <span className="gradient-text">build</span> together?
             </h2>
+            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+              Powered by AI. Generate stunning React components, apps, and interfaces with natural language.
+            </p>
           </div>
 
-          {/* Prompt Input */}
-          <div className="max-w-2xl mx-auto">
+          {/* Prompt Input - Bolt.new Style */}
+          <div className="max-w-3xl mx-auto">
             <PromptInput
               onSubmit={handleSendMessage}
-              className="w-full relative"
+              className="w-full relative glass-effect rounded-2xl shadow-2xl border border-white/10 overflow-hidden animate-slide-in-right"
               onImageDrop={handleImageFiles}
               isDragOver={isDragOver}
               onDragOver={handleDragOver}
@@ -608,8 +621,8 @@ export function HomeClient() {
                 ref={textareaRef}
                 onChange={(e) => setMessage(e.target.value)}
                 value={message}
-                placeholder="Describe what you want to build..."
-                className="min-h-[80px] text-base"
+                placeholder="✨ Describe what you want to build... (e.g., 'A modern landing page with hero section')"
+                className="min-h-[100px] text-base bg-transparent resize-none focus:outline-none text-gray-100 placeholder:text-gray-500"
                 disabled={isLoading}
               />
               <PromptInputToolbar>
@@ -634,6 +647,7 @@ export function HomeClient() {
                   <PromptInputSubmit
                     disabled={!message.trim() || isLoading}
                     status={isLoading ? 'streaming' : 'ready'}
+                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg transition-all duration-200 disabled:opacity-50"
                   />
                 </PromptInputTools>
               </PromptInputToolbar>

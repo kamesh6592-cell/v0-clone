@@ -56,7 +56,7 @@ export function AppHeader({ className = '' }: AppHeaderProps) {
 
   return (
     <div
-      className={`${!isHomepage ? 'border-b border-border dark:border-input' : ''} ${className}`}
+      className={`${!isHomepage ? 'border-b glass-effect' : 'glass-effect'} ${className} sticky top-0 z-50 backdrop-blur-xl`}
     >
       {/* Handle search params with Suspense boundary */}
       <Suspense fallback={null}>
@@ -83,16 +83,16 @@ export function AppHeader({ className = '' }: AppHeaderProps) {
 
           {/* Desktop right side - Provider toggles and User */}
           <div className="hidden lg:flex items-center gap-3">
-            {/* API Provider Toggle */}
-            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1 shadow-sm">
+            {/* API Provider Toggle - Bolt.new style */}
+            <div className="flex items-center gap-1.5 glass-effect rounded-xl p-1.5 shadow-lg">
               <Button
                 variant={provider === 'v0' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setProvider('v0')}
-                className={`h-8 px-3 text-xs font-medium transition-all ${
+                className={`h-9 px-4 text-xs font-semibold transition-all duration-200 rounded-lg ${
                   provider === 'v0' 
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm' 
-                    : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md' 
+                    : 'hover:bg-white/5 text-gray-300'
                 }`}
               >
                 v0
@@ -101,10 +101,10 @@ export function AppHeader({ className = '' }: AppHeaderProps) {
                 variant={provider === 'claude' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setProvider('claude')}
-                className={`h-8 px-3 text-xs font-medium transition-all ${
+                className={`h-9 px-4 text-xs font-semibold transition-all duration-200 rounded-lg ${
                   provider === 'claude' 
-                    ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-sm' 
-                    : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+                    ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white shadow-md' 
+                    : 'hover:bg-white/5 text-gray-300'
                 }`}
               >
                 Claude
@@ -113,10 +113,10 @@ export function AppHeader({ className = '' }: AppHeaderProps) {
                 variant={provider === 'grok' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setProvider('grok')}
-                className={`h-8 px-3 text-xs font-medium transition-all ${
+                className={`h-9 px-4 text-xs font-semibold transition-all duration-200 rounded-lg ${
                   provider === 'grok' 
-                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-sm' 
-                    : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+                    ? 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white shadow-md' 
+                    : 'hover:bg-white/5 text-gray-300'
                 }`}
               >
                 Grok
@@ -129,13 +129,13 @@ export function AppHeader({ className = '' }: AppHeaderProps) {
                 variant={streaming ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setStreaming(!streaming)}
-                className={`h-8 px-3 text-xs font-medium transition-all ${
+                className={`h-9 px-4 text-xs font-semibold transition-all duration-200 rounded-lg ${
                   streaming
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                    ? 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-md pulse-glow'
+                    : 'glass-effect hover:bg-white/5 text-gray-300 border-white/10'
                 }`}
               >
-                {streaming ? '⚡ Streaming' : 'Streaming Off'}
+                {streaming ? '⚡ Streaming' : '○ Streaming'}
               </Button>
             )}
 
