@@ -25,6 +25,20 @@ export async function GET(
       )
     }
 
+    // Check if this is a Claude or Grok chat (not stored in v0)
+    if (chatId.startsWith('claude-') || chatId.startsWith('grok-')) {
+      console.log('Non-v0 chat detected, returning minimal chat object')
+      
+      // Return a minimal chat object for Claude/Grok chats
+      // These chats don't have a preview URL since they're just text responses
+      return NextResponse.json({
+        id: chatId,
+        demo: null,
+        url: null,
+        messages: [],
+      })
+    }
+
     if (session?.user?.id) {
       // Authenticated user - check ownership
       const ownership = await getChatOwnership({ v0ChatId: chatId })
@@ -41,7 +55,7 @@ export async function GET(
       console.log('Anonymous access to chat:', chatId)
     }
 
-    // Fetch chat details using v0 SDK
+    // Fetch chat details using v0 SDK (only for v0 chats)
     const chatDetails = await v0.chats.getById({ chatId })
 
     console.log('Chat details fetched:', chatDetails)

@@ -109,6 +109,8 @@ export function useChat(chatId: string) {
 
     try {
       // Use streaming mode with provider from context
+      console.log('🚀 Sending message with provider:', provider || 'v0', 'streaming:', streaming ?? true)
+      
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -122,6 +124,8 @@ export function useChat(chatId: string) {
           ...(attachments && attachments.length > 0 && { attachments }),
         }),
       })
+      
+      console.log('✅ API Response status:', response.status)
 
       if (!response.ok) {
         // Try to get the specific error message from the response
