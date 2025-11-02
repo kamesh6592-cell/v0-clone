@@ -221,12 +221,24 @@ export async function POST(request: NextRequest) {
 
 When asked about your identity, always identify yourself as Claude (made by Anthropic), not v0 or any other AI.`
 
-        // Use AI SDK for streaming
+        // Use AI SDK for streaming with correct model name
+        console.log('Calling Claude API with model: claude-sonnet-4-20250514')
         const result = await streamText({
-          model: anthropicProvider('claude-sonnet-4-5-20250929'),
-          prompt: `${systemPrompt}\n\nUser request: ${message}`,
+          model: anthropicProvider('claude-sonnet-4-20250514'),
+          messages: [
+            {
+              role: 'system',
+              content: systemPrompt,
+            },
+            {
+              role: 'user',
+              content: message,
+            },
+          ],
           temperature: 0.7,
         })
+        
+        console.log('Claude API called successfully')
 
         if (streaming) {
           // Create a custom stream that wraps Claude's text in v0's format
@@ -405,11 +417,23 @@ When asked about your identity, always identify yourself as Claude (made by Anth
 When asked about your identity, always identify yourself as Grok (made by xAI), not v0 or any other AI.`
 
         // Use AI SDK with xAI for streaming
+        console.log('Calling Grok API with model: grok-beta')
         const result = await streamText({
-          model: xaiProvider('grok-4-fast-reasoning'),
-          prompt: `${systemPrompt}\n\nUser request: ${message}`,
+          model: xaiProvider('grok-beta'),
+          messages: [
+            {
+              role: 'system',
+              content: systemPrompt,
+            },
+            {
+              role: 'user',
+              content: message,
+            },
+          ],
           temperature: 0.7,
         })
+        
+        console.log('Grok API called successfully')
 
         if (streaming) {
           // Create a custom stream that wraps Grok's text in v0's format
