@@ -255,10 +255,20 @@ When asked about your identity, always identify yourself as Claude (made by Anth
 
                 // Stream the text content
                 let accumulatedText = ''
+                let chunkCount = 0
+                
+                console.log('🔵 Starting Claude stream...')
+                
                 for await (const event of stream) {
+                  console.log('📦 Claude event type:', event.type)
+                  
                   if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
                     const textPart = event.delta.text
                     accumulatedText += textPart
+                    chunkCount++
+                    
+                    console.log(`📝 Claude chunk #${chunkCount}:`, textPart.substring(0, 50) + (textPart.length > 50 ? '...' : ''))
+                    
                     const chunkData = {
                       object: 'chat.message.delta',
                       delta: {
@@ -269,7 +279,10 @@ When asked about your identity, always identify yourself as Claude (made by Anth
                   }
                 }
 
-                console.log('Claude stream completed with text length:', accumulatedText.length)
+                console.log('✅ Claude stream completed')
+                console.log('📊 Total chunks:', chunkCount)
+                console.log('📊 Total text length:', accumulatedText.length)
+                console.log('📝 First 100 chars:', accumulatedText.substring(0, 100))
 
                 // Send final message
                 const finalData = {
@@ -474,6 +487,9 @@ When asked about your identity, always identify yourself as Grok (made by xAI), 
 
                 const decoder = new TextDecoder()
                 let accumulatedText = ''
+                let chunkCount = 0
+
+                console.log('🟢 Starting Grok stream...')
 
                 while (true) {
                   const { done, value } = await reader.read()
@@ -491,6 +507,10 @@ When asked about your identity, always identify yourself as Grok (made by xAI), 
                       const content = parsed.choices?.[0]?.delta?.content
                       if (content) {
                         accumulatedText += content
+                        chunkCount++
+                        
+                        console.log(`📝 Grok chunk #${chunkCount}:`, content.substring(0, 50) + (content.length > 50 ? '...' : ''))
+                        
                         const chunkData = {
                           object: 'chat.message.delta',
                           delta: {
@@ -500,12 +520,15 @@ When asked about your identity, always identify yourself as Grok (made by xAI), 
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`))
                       }
                     } catch (e) {
-                      // Skip invalid JSON
+                      console.log('⚠️ Grok parse error:', e)
                     }
                   }
                 }
 
-                console.log('Grok stream completed with text length:', accumulatedText.length)
+                console.log('✅ Grok stream completed')
+                console.log('📊 Total chunks:', chunkCount)
+                console.log('📊 Total text length:', accumulatedText.length)
+                console.log('📝 First 100 chars:', accumulatedText.substring(0, 100))
 
                 // Send final message
                 const finalData = {
