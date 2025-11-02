@@ -217,7 +217,9 @@ export async function POST(request: NextRequest) {
           apiKey: process.env.ANTHROPIC_API_KEY,
         })
         
-        const systemPrompt = `You are an expert React developer. Generate React components and applications based on user requests. Focus on creating clean, modern, and functional code using React best practices, TypeScript, and Tailwind CSS.`
+        const systemPrompt = `You are Claude, an AI assistant created by Anthropic. You are an expert React developer. Generate React components and applications based on user requests. Focus on creating clean, modern, and functional code using React best practices, TypeScript, and Tailwind CSS.
+
+When asked about your identity, always identify yourself as Claude (made by Anthropic), not v0 or any other AI.`
 
         // Use AI SDK for streaming
         const result = await streamText({
@@ -347,6 +349,11 @@ export async function POST(request: NextRequest) {
                             error?.message?.toLowerCase().includes('rate limit') ||
                             error?.status === 429
         
+        // Send email notification immediately for ANY Claude failure
+        await sendQuotaExhaustedEmail('claude', error?.message || 'Unknown error').catch(err => {
+          console.error('Failed to send Claude error email:', err)
+        })
+        
         if (isQuotaError) {
           const nextProvider = await tryAlternativeProvider('claude', error?.message || 'Unknown error', attemptedProviders)
           console.log(`Claude failed, retrying with ${nextProvider}`)
@@ -383,7 +390,9 @@ export async function POST(request: NextRequest) {
           apiKey: process.env.XAI_API_KEY,
         })
         
-        const systemPrompt = `You are an expert React developer. Generate React components and applications based on user requests. Focus on creating clean, modern, and functional code using React best practices, TypeScript, and Tailwind CSS.`
+        const systemPrompt = `You are Grok, an AI assistant created by xAI (Elon Musk's company). You are an expert React developer. Generate React components and applications based on user requests. Focus on creating clean, modern, and functional code using React best practices, TypeScript, and Tailwind CSS.
+
+When asked about your identity, always identify yourself as Grok (made by xAI), not v0 or any other AI.`
 
         // Use AI SDK with xAI for streaming
         const result = await streamText({
@@ -512,6 +521,11 @@ export async function POST(request: NextRequest) {
         const isQuotaError = error?.message?.toLowerCase().includes('quota') ||
                            error?.message?.toLowerCase().includes('rate limit') ||
                            error?.status === 429
+        
+        // Send email notification immediately for ANY Grok failure
+        await sendQuotaExhaustedEmail('grok', error?.message || 'Unknown error').catch(err => {
+          console.error('Failed to send Grok error email:', err)
+        })
         
         if (isQuotaError) {
           const nextProvider = await tryAlternativeProvider('grok', error?.message || 'Unknown error', attemptedProviders)
@@ -710,6 +724,11 @@ export async function POST(request: NextRequest) {
       console.error('Error message:', error.message)
       console.error('Error stack:', error.stack)
     }
+
+    // Send email notification immediately for ANY v0 failure
+    await sendQuotaExhaustedEmail('v0', error?.message || 'Unknown error').catch(err => {
+      console.error('Failed to send v0 error email:', err)
+    })
 
     // Check if this is an error we should retry with another provider
     const shouldRetry = 

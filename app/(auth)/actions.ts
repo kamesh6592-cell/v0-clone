@@ -6,6 +6,8 @@ import { createUser, getUser } from '@/lib/db/queries'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { AuthError } from 'next-auth'
+import { sendUserRegistrationEmail, sendUserLoginEmail } from '@/lib/email'
+import { getClientIP, getUserAgent } from '@/lib/request-utils'
 
 const signInSchema = z.object({
   email: z.string().email('Please enter a valid email.'),
@@ -36,6 +38,20 @@ export async function signInAction(
       email: validatedData.email,
       password: validatedData.password,
       redirect: false,
+    })
+
+    // Send login notification email
+    const ipAddress = await getClientIP()
+    const userAgent = await getUserAgent()
+    
+    await sendUserLoginEmail({
+      email: validatedData.email,
+      ipAddress,
+      userAgent,
+      authProvider: 'credentials',
+      timestamp: new Date(),
+    }).catch(err => {
+      console.error('Failed to send login notification email:', err)
     })
 
     revalidatePath('/')
@@ -88,6 +104,20 @@ export async function signUpAction(
     }
 
     await createUser(validatedData.email, validatedData.password)
+
+    // Send registration notification email
+    const ipAddress = await getClientIP()
+    const userAgent = await getUserAgent()
+    
+    await sendUserRegistrationEmail({
+      email: validatedData.email,
+      ipAddress,
+      userAgent,
+      authProvider: 'credentials',
+      timestamp: new Date(),
+    }).catch(err => {
+      console.error('Failed to send registration notification email:', err)
+    })
 
     const result = await signIn('credentials', {
       email: validatedData.email,
