@@ -391,7 +391,7 @@ Respond conversationally for questions, but provide complete, working code for c
 
         // Create a mock chat response that matches v0's structure
         const mockChat = {
-          id: `claude-${Date.now()}`,
+          id: chatId || `claude-${Date.now()}`,
           demo: `https://dev.ajstudioz.co.in/preview/${Date.now()}`,
           messages: [
             {
@@ -639,7 +639,7 @@ Respond conversationally for questions, but provide complete, working code for c
 
         // Create a mock chat response that matches v0's structure
         const mockChat = {
-          id: `grok-${Date.now()}`,
+          id: chatId || `grok-${Date.now()}`,
           demo: `https://dev.ajstudioz.co.in/preview/${Date.now()}`,
           messages: [
             {
@@ -795,7 +795,7 @@ Respond conversationally for questions, but provide complete, working code for c
 
         // Create a mock chat response that matches v0's structure
         const mockChat = {
-          id: `deepseek-${Date.now()}`,
+          id: chatId || `deepseek-${Date.now()}`,
           demo: `https://dev.ajstudioz.co.in/preview/${Date.now()}`,
           messages: [
             {
@@ -950,43 +950,50 @@ Respond conversationally for questions, but provide complete, working code for c
     // Handle v0 API requests (existing logic)
 
     if (chatId) {
-      // continue existing chat
-      try {
-        if (streaming) {
-          // Return streaming response for existing chat
-          console.log('Sending streaming message to existing chat:', {
-            chatId,
-            message,
-            responseMode: 'experimental_stream',
-          })
-          chat = await v0.chats.sendMessage({
-            chatId: chatId,
-            message,
-            responseMode: 'experimental_stream',
-            ...(attachments && attachments.length > 0 && { attachments }),
-          })
-          console.log('Streaming message sent to existing chat successfully')
+      // Handle non-v0 provider chats (deepseek, claude, grok)
+      if (chatId.startsWith('deepseek-') || chatId.startsWith('claude-') || chatId.startsWith('grok-')) {
+        console.log(`Continuing ${effectiveProvider} chat with existing ID:`, chatId)
+        // For external providers, we don't have persistent chat history in v0
+        // So we treat this as a new message but keep the chat ID for consistency
+        // The frontend will handle the conversation history
+      } else {
+        // continue existing v0 chat
+        try {
+          if (streaming) {
+            // Return streaming response for existing chat
+            console.log('Sending streaming message to existing chat:', {
+              chatId,
+              message,
+              responseMode: 'experimental_stream',
+            })
+            chat = await v0.chats.sendMessage({
+              chatId: chatId,
+              message,
+              responseMode: 'experimental_stream',
+              ...(attachments && attachments.length > 0 && { attachments }),
+            })
+            console.log('Streaming message sent to existing chat successfully')
 
-          // Wrap stream to inject provider info
-          const wrappedStream = wrapV0StreamWithProvider(chat as ReadableStream<Uint8Array>, 'v0')
-          return new Response(wrappedStream, {
-            headers: {
-              'Content-Type': 'text/event-stream',
-              'Cache-Control': 'no-cache',
-              Connection: 'keep-alive',
-            },
-          })
-        } else {
-          // Non-streaming response for existing chat
-          chat = await v0.chats.sendMessage({
-            chatId: chatId,
-            message,
-            ...(attachments && attachments.length > 0 && { attachments }),
-          })
-        }
-      } catch (chatError: any) {
-        // If chat doesn't exist or has error, check if we should switch providers
-        console.error('Failed to send message to existing chat:', chatError.message)
+            // Wrap stream to inject provider info
+            const wrappedStream = wrapV0StreamWithProvider(chat as ReadableStream<Uint8Array>, 'v0')
+            return new Response(wrappedStream, {
+              headers: {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                Connection: 'keep-alive',
+              },
+            })
+          } else {
+            // Non-streaming response for existing chat
+            chat = await v0.chats.sendMessage({
+              chatId: chatId,
+              message,
+              ...(attachments && attachments.length > 0 && { attachments }),
+            })
+          }
+        } catch (chatError: any) {
+          // If chat doesn't exist or has error, check if we should switch providers
+          console.error('Failed to send message to existing v0 chat:', chatError.message)
         
         const shouldSwitchProvider = 
           chatError?.message?.toLowerCase().includes('quota') ||
@@ -1030,11 +1037,12 @@ Respond conversationally for questions, but provide complete, working code for c
             },
           })
         } else {
-          chat = await v0.chats.create({
-            message,
-            responseMode: 'sync',
-            ...(attachments && attachments.length > 0 && { attachments }),
-          })
+            chat = await v0.chats.create({
+              message,
+              responseMode: 'sync',
+              ...(attachments && attachments.length > 0 && { attachments }),
+            })
+          }
         }
       }
     } else {
