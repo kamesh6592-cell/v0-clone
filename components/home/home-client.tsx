@@ -27,6 +27,8 @@ import { PreviewPanel } from '@/components/chat/preview-panel'
 import { ResizableLayout } from '@/components/shared/resizable-layout'
 import { BottomToolbar } from '@/components/shared/bottom-toolbar'
 import { TemplatesShowcase } from '@/components/home/templates-showcase'
+import Workbench from '@/components/workbench/Workbench'
+import { FeaturesPanel } from '@/components/features/FeaturesPanel'
 import { useProvider } from '@/contexts/provider-context'
 import { cn } from '@/lib/utils'
 
@@ -75,6 +77,7 @@ export function HomeClient() {
   const [activePanel, setActivePanel] = useState<'chat' | 'preview'>('chat')
   const [currentProvider, setCurrentProvider] = useState<string>('v0')
   const [isStreaming, setIsStreaming] = useState(false)
+  const [showIDE, setShowIDE] = useState(false)
   const router = useRouter()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -476,6 +479,32 @@ export function HomeClient() {
             Back
           </button>
           <button
+            onClick={() => setShowIDE(!showIDE)}
+            className={cn(
+              "inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors",
+              showIDE
+                ? "text-white bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600"
+                : "text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
+            )}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="16 18 22 12 16 6" />
+              <polyline points="8 6 2 12 8 18" />
+            </svg>
+            {showIDE ? 'Hide IDE' : 'Show IDE'}
+          </button>
+          <FeaturesPanel />
+          <button
             onClick={handleReset}
             className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
           >
@@ -497,57 +526,107 @@ export function HomeClient() {
         </div>
 
         <div className="flex flex-col h-[calc(100vh-64px-40px-48px)] md:h-[calc(100vh-64px-48px)]">
-          <ResizableLayout
-            className="flex-1 min-h-0"
-            singlePanelMode={false}
-            activePanel={activePanel === 'chat' ? 'left' : 'right'}
-            leftPanel={
-              <div className="flex flex-col h-full relative">
-                {isStreaming && (
-                  <div className="absolute top-2 right-2 z-10 flex items-center gap-2 bg-white dark:bg-gray-800 rounded-full px-3 py-1.5 shadow-md border border-gray-200 dark:border-gray-700">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">
-                      AI:
-                    </span>
-                    <span className={cn(
-                      "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
-                      currentProvider === 'v0' && "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-                      currentProvider === 'claude' && "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-                      currentProvider === 'grok' && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                    )}>
-                      {currentProvider === 'v0' ? 'v0' : currentProvider === 'claude' ? 'Claude' : 'Grok'}
-                    </span>
+          {showIDE ? (
+            <div className="flex-1 min-h-0">
+              <ResizableLayout
+                className="h-full"
+                singlePanelMode={false}
+                activePanel={activePanel === 'chat' ? 'left' : 'right'}
+                leftPanel={
+                  <div className="flex flex-col h-full relative">
+                    {isStreaming && (
+                      <div className="absolute top-2 right-2 z-10 flex items-center gap-2 bg-white dark:bg-gray-800 rounded-full px-3 py-1.5 shadow-md border border-gray-200 dark:border-gray-700">
+                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                          AI:
+                        </span>
+                        <span className={cn(
+                          "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
+                          currentProvider === 'v0' && "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+                          currentProvider === 'claude' && "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+                          currentProvider === 'grok' && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                        )}>
+                          {currentProvider === 'v0' ? 'v0' : currentProvider === 'claude' ? 'Claude' : 'Grok'}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex-1 overflow-y-auto">
+                      <ChatMessages
+                        chatHistory={chatHistory}
+                        isLoading={isLoading}
+                        currentChat={currentChat}
+                        onStreamingComplete={handleStreamingComplete}
+                        onChatData={handleChatData}
+                        onStreamingStarted={() => setIsLoading(false)}
+                      />
+                    </div>
+
+                    <ChatInput
+                      message={message}
+                      setMessage={setMessage}
+                      onSubmit={handleChatSendMessage}
+                      isLoading={isLoading}
+                      showSuggestions={false}
+                    />
                   </div>
-                )}
-                <div className="flex-1 overflow-y-auto">
-                  <ChatMessages
-                    chatHistory={chatHistory}
+                }
+                rightPanel={
+                  <Workbench className="h-full" theme="dark" />
+                }
+              />
+            </div>
+          ) : (
+            <ResizableLayout
+              className="flex-1 min-h-0"
+              singlePanelMode={false}
+              activePanel={activePanel === 'chat' ? 'left' : 'right'}
+              leftPanel={
+                <div className="flex flex-col h-full relative">
+                  {isStreaming && (
+                    <div className="absolute top-2 right-2 z-10 flex items-center gap-2 bg-white dark:bg-gray-800 rounded-full px-3 py-1.5 shadow-md border border-gray-200 dark:border-gray-700">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">
+                        AI:
+                      </span>
+                      <span className={cn(
+                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
+                        currentProvider === 'v0' && "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+                        currentProvider === 'claude' && "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+                        currentProvider === 'grok' && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                      )}>
+                        {currentProvider === 'v0' ? 'v0' : currentProvider === 'claude' ? 'Claude' : 'Grok'}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex-1 overflow-y-auto">
+                    <ChatMessages
+                      chatHistory={chatHistory}
+                      isLoading={isLoading}
+                      currentChat={currentChat}
+                      onStreamingComplete={handleStreamingComplete}
+                      onChatData={handleChatData}
+                      onStreamingStarted={() => setIsLoading(false)}
+                    />
+                  </div>
+
+                  <ChatInput
+                    message={message}
+                    setMessage={setMessage}
+                    onSubmit={handleChatSendMessage}
                     isLoading={isLoading}
-                    currentChat={currentChat}
-                    onStreamingComplete={handleStreamingComplete}
-                    onChatData={handleChatData}
-                    onStreamingStarted={() => setIsLoading(false)}
+                    showSuggestions={false}
                   />
                 </div>
-
-                <ChatInput
-                  message={message}
-                  setMessage={setMessage}
-                  onSubmit={handleChatSendMessage}
-                  isLoading={isLoading}
-                  showSuggestions={false}
+              }
+              rightPanel={
+                <PreviewPanel
+                  currentChat={currentChat}
+                  isFullscreen={isFullscreen}
+                  setIsFullscreen={setIsFullscreen}
+                  refreshKey={refreshKey}
+                  setRefreshKey={setRefreshKey}
                 />
-              </div>
-            }
-            rightPanel={
-              <PreviewPanel
-                currentChat={currentChat}
-                isFullscreen={isFullscreen}
-                setIsFullscreen={setIsFullscreen}
-                refreshKey={refreshKey}
-                setRefreshKey={setRefreshKey}
-              />
-            }
-          />
+              }
+            />
+          )}
 
           <div className="md:hidden">
             <BottomToolbar
@@ -653,6 +732,38 @@ export function HomeClient() {
                 </PromptInputTools>
               </PromptInputToolbar>
             </PromptInput>
+          </div>
+
+          {/* Quick Access Buttons */}
+          <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
+            <button
+              onClick={() => {
+                setShowChatInterface(true)
+                setShowIDE(true)
+              }}
+              className="inline-flex items-center gap-3 px-6 py-3 text-lg font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="16 18 22 12 16 6" />
+                <polyline points="8 6 2 12 8 18" />
+              </svg>
+              Launch IDE Workspace
+              <span className="text-sm opacity-90">✨ bolt.new style</span>
+            </button>
+            
+            <div className="scale-110">
+              <FeaturesPanel />
+            </div>
           </div>
 
           {/* Templates Showcase */}
@@ -777,6 +888,13 @@ export function HomeClient() {
                   }, 0)
                 }}
                 suggestion="Calculator"
+              />
+              <Suggestion
+                onClick={() => {
+                  setShowChatInterface(true)
+                  setShowIDE(true)
+                }}
+                suggestion="🚀 Open IDE"
               />
             </Suggestions>
           </div>
