@@ -789,6 +789,9 @@ Respond conversationally for questions, but provide complete, working code for c
         const fullText = data.choices?.[0]?.message?.content || 'No response from DeepSeek'
 
         console.log('✅ Azure DeepSeek API response received')
+        console.log('📄 DeepSeek response data:', JSON.stringify(data, null, 2))
+        console.log('📝 DeepSeek full text length:', fullText.length, 'chars')
+        console.log('📝 DeepSeek response preview:', fullText.substring(0, 200))
 
         // Create a mock chat response that matches v0's structure
         const mockChat = {
@@ -830,6 +833,73 @@ Respond conversationally for questions, but provide complete, working code for c
               v0ChatId: mockChat.id,
             })
           }
+        }
+
+        // Handle streaming vs non-streaming response
+        if (streaming) {
+          // Convert to streaming format for compatibility
+          const encoder = new TextEncoder()
+          const customStream = new ReadableStream({
+            async start(controller) {
+              try {
+                // Send initial metadata
+                const initialData = {
+                  object: 'chat',
+                  id: mockChat.id,
+                  demo: mockChat.demo,
+                  url: null,
+                  messages: [],
+                  provider: 'deepseek'
+                }
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`))
+
+                // Send the complete response as a single chunk
+                const chunkData = {
+                  object: 'chat.message.delta',
+                  delta: {
+                    content: fullText,
+                    experimental_content: [
+                      {
+                        type: 'text',
+                        text: fullText
+                      }
+                    ]
+                  }
+                }
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`))
+
+                // Send completion message
+                const finalData = {
+                  object: 'chat.message.completed',
+                  message: {
+                    id: `msg-${Date.now()}`,
+                    role: 'assistant',
+                    content: fullText,
+                    experimental_content: [
+                      {
+                        type: 'text',
+                        text: fullText
+                      }
+                    ]
+                  }
+                }
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(finalData)}\n\n`))
+                controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+                controller.close()
+              } catch (error) {
+                console.error('❌ DeepSeek stream error:', error)
+                controller.error(error)
+              }
+            }
+          })
+
+          return new Response(customStream, {
+            headers: {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              Connection: 'keep-alive',
+            },
+          })
         }
 
         return NextResponse.json(mockChat)
