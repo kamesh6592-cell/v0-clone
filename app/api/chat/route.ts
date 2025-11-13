@@ -835,6 +835,16 @@ Respond conversationally for questions, but provide complete, working code for c
           }
         }
 
+        // Process DeepSeek response to extract visible content (remove <think> tags)
+        const processDeepSeekContent = (text: string) => {
+          // Remove <think>...</think> blocks completely
+          const cleanText = text.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+          console.log('🧠 DeepSeek processed text:', cleanText.substring(0, 100))
+          return cleanText
+        }
+
+        const visibleText = processDeepSeekContent(fullText)
+
         // Handle streaming vs non-streaming response
         if (streaming) {
           // Convert to streaming format for compatibility
@@ -853,32 +863,32 @@ Respond conversationally for questions, but provide complete, working code for c
                 }
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`))
 
-                // Send the complete response as a single chunk
+                // Send the processed visible content as a single chunk
                 const chunkData = {
                   object: 'chat.message.delta',
                   delta: {
-                    content: fullText,
+                    content: visibleText,
                     experimental_content: [
                       {
                         type: 'text',
-                        text: fullText
+                        text: visibleText
                       }
                     ]
                   }
                 }
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`))
 
-                // Send completion message
+                // Send completion message with processed text
                 const finalData = {
                   object: 'chat.message.completed',
                   message: {
                     id: `msg-${Date.now()}`,
                     role: 'assistant',
-                    content: fullText,
+                    content: visibleText,
                     experimental_content: [
                       {
                         type: 'text',
-                        text: fullText
+                        text: visibleText
                       }
                     ]
                   }

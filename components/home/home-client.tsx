@@ -336,6 +336,10 @@ export function HomeClient() {
     setIsLoading(false)
     setIsStreaming(false)
 
+    console.log('🎯 Final content received:', finalContent)
+    console.log('🎯 Final content type:', typeof finalContent)
+    console.log('🎯 Final content structure:', JSON.stringify(finalContent, null, 2))
+
     // Update chat history with final content
     setChatHistory((prev) => {
       const updated = [...prev]
