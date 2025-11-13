@@ -25,11 +25,11 @@ export async function GET(
       )
     }
 
-    // Check if this is a Claude or Grok chat (not stored in v0)
-    if (chatId.startsWith('claude-') || chatId.startsWith('grok-')) {
-      console.log('Non-v0 chat detected, returning minimal chat object')
+    // Check if this is an external provider chat (not stored in v0)
+    if (chatId.startsWith('claude-') || chatId.startsWith('grok-') || chatId.startsWith('deepseek-')) {
+      console.log('External provider chat detected, returning minimal chat object for:', chatId)
       
-      // Return a minimal chat object for Claude/Grok chats
+      // Return a minimal chat object for external provider chats
       // These chats don't have a preview URL since they're just text responses
       return NextResponse.json({
         id: chatId,
