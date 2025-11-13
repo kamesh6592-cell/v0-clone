@@ -48,91 +48,122 @@ const features: Feature[] = [
     badge: 'Advanced'
   },
   {
-    id: 'codemirror-editor',
-    name: 'Code Editor',
-    description: 'Advanced code editor with syntax highlighting and IntelliSense',
+    id: 'quick-actions',
+    name: 'Quick Actions',
+    description: 'Rapid development shortcuts and code generators',
     icon: <Code2 className="w-5 h-5" />,
     component: null,
     category: 'development',
-    badge: 'IDE',
-    action: () => alert('Code editor is available in the IDE workspace mode!')
+    badge: 'Live',
+    action: () => {
+      const actions = [
+        '🎨 Create a beautiful landing page',
+        '📱 Build a responsive navbar',
+        '💳 Design a pricing card component',
+        '📝 Make a contact form',
+        '🎮 Create an interactive button'
+      ];
+      const selected = actions[Math.floor(Math.random() * actions.length)];
+      navigator.clipboard.writeText(selected).then(() => {
+        alert(`Copied to clipboard: "${selected}"\nPaste this in the chat to get started!`);
+      });
+    }
   },
   {
-    id: 'terminal',
-    name: 'Integrated Terminal',
-    description: 'Browser-based terminal with WebContainer integration',
-    icon: <Terminal className="w-5 h-5" />,
+    id: 'component-library',
+    name: 'Component Library',
+    description: 'Pre-built React components ready to use',
+    icon: <Layers className="w-5 h-5" />,
     component: null,
     category: 'development',
-    badge: 'CLI',
-    action: () => alert('Terminal is available in the IDE workspace mode!')
-  },
-  {
-    id: 'file-tree',
-    name: 'File Explorer',
-    description: 'Project file tree with creation, deletion, and navigation',
-    icon: <FileCode className="w-5 h-5" />,
-    component: null,
-    category: 'development',
-    action: () => alert('File explorer is available in the IDE workspace mode!')
-  },
-  {
-    id: 'git-integration',
-    name: 'Git Integration',
-    description: 'Version control with clone, commit, push, and pull operations',
-    icon: <GitBranch className="w-5 h-5" />,
-    component: null,
-    category: 'development',
-    action: () => alert('Git integration coming soon!')
-  },
-  {
-    id: 'deployment-tools',
-    name: 'Deployment Tools',
-    description: 'Deploy to Vercel, Netlify, and other platforms',
-    icon: <Rocket className="w-5 h-5" />,
-    component: null,
-    category: 'deployment',
-    badge: 'Production',
-    action: () => alert('Deployment tools coming soon!')
+    badge: 'Ready',
+    action: () => {
+      const components = [
+        'Modern dashboard layout',
+        'Authentication forms',
+        'Data table with sorting',
+        'Chart components',
+        'Modal dialogs',
+        'Loading spinners',
+        'Progress bars',
+        'Toast notifications'
+      ];
+      const selected = components[Math.floor(Math.random() * components.length)];
+      navigator.clipboard.writeText(`Create a ${selected} component`).then(() => {
+        alert(`Copied: "Create a ${selected} component"\nPaste in chat to generate!`);
+      });
+    }
   },
   {
     id: 'ai-models',
-    name: 'AI Model Switching',
-    description: 'Switch between v0, Claude, and Grok AI models',
-    icon: <Layers className="w-5 h-5" />,
+    name: 'AI Models (4 Available)',
+    description: 'v0 • Claude • Grok • DeepSeek - Switch in header',
+    icon: <Globe className="w-5 h-5" />,
     component: null,
     category: 'ai',
     badge: 'Multi-AI',
-    action: () => alert('AI model selection is available in the provider settings!')
+    action: () => {
+      alert('🤖 4 AI Models Available!\n\n🔵 v0: UI/UX specialized\n🟣 Claude: Detailed & thoughtful\n🟢 Grok: Fast & creative\n🔴 DeepSeek: Advanced reasoning\n\nSwitch models using the header buttons!');
+    }
   },
   {
-    id: 'performance',
-    name: 'Performance Analytics',
-    description: 'Monitor app performance with Core Web Vitals',
-    icon: <Gauge className="w-5 h-5" />,
+    id: 'export-import',
+    name: 'Code Export/Import',
+    description: 'Save and load your projects easily',
+    icon: <FileCode className="w-5 h-5" />,
+    component: null,
+    category: 'productivity',
+    badge: 'Active',
+    action: () => {
+      alert('💾 Export Features:\n\n• Copy generated code\n• Download as files\n• Share via URL\n• Import existing projects\n\nLook for export buttons in chat messages!');
+    }
+  },
+  {
+    id: 'live-preview',
+    name: 'Live Preview',
+    description: 'Real-time preview with responsive testing',
+    icon: <Settings className="w-5 h-5" />,
     component: null,
     category: 'development',
-    badge: 'Analytics',
-    action: () => alert('Performance monitoring coming soon!')
+    badge: 'Live',
+    action: () => {
+      alert('👁️ Live Preview Features:\n\n• Instant code updates\n• Mobile/Tablet/Desktop views\n• Fullscreen mode\n• Refresh controls\n• Open in new tab\n\nGenerate a component to see it in action!');
+    }
   },
   {
     id: 'speech-input',
     name: 'Voice Input',
-    description: 'Speech-to-text for natural language interactions',
+    description: 'Speech-to-text for natural conversations',
     icon: <Mic className="w-5 h-5" />,
     component: null,
     category: 'productivity',
     badge: 'Voice',
-    action: () => alert('Voice input is available in the chat interface!')
+    action: () => {
+      alert('🎤 Voice Input:\n\nClick the microphone button in the chat input to:\n• Speak your requests naturally\n• Convert speech to text\n• Hands-free development\n\nSupported in modern browsers!');
+    }
   },
   {
-    id: 'screenshot-tools',
-    name: 'Screenshot Tools',
-    description: 'Capture and analyze screenshots for design inspiration',
-    icon: <Image className="w-5 h-5" />,
+    id: 'templates',
+    name: 'Project Templates',
+    description: 'Pre-configured project setups and examples',
+    icon: <Palette className="w-5 h-5" />,
     component: null,
-    category: 'media',
-    action: () => alert('Screenshot tools coming soon!')
+    category: 'productivity',
+    badge: 'Ready',
+    action: () => {
+      const templates = [
+        'E-commerce product page',
+        'SaaS landing page',
+        'Portfolio website',
+        'Admin dashboard',
+        'Blog template',
+        'Authentication flow'
+      ];
+      const selected = templates[Math.floor(Math.random() * templates.length)];
+      navigator.clipboard.writeText(`Build a ${selected} with modern design`).then(() => {
+        alert(`Template copied: "${selected}"\nPaste in chat to create a full template!`);
+      });
+    }
   }
 ];
 

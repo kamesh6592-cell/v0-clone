@@ -487,21 +487,43 @@ export function HomeClient() {
                 : "text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
             )}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="16 18 22 12 16 6" />
-              <polyline points="8 6 2 12 8 18" />
-            </svg>
-            {showIDE ? 'Hide IDE' : 'Show IDE'}
+            {showIDE ? (
+              <>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="16 18 22 12 16 6" />
+                  <polyline points="8 6 2 12 8 18" />
+                </svg>
+                Code
+              </>
+            ) : (
+              <>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect width="18" height="18" x="3" y="3" rx="2"/>
+                  <path d="M9 9h6v6h-6z"/>
+                </svg>
+                Preview
+              </>
+            )}
           </button>
           <FeaturesPanel />
           <button
@@ -736,33 +758,8 @@ export function HomeClient() {
             </PromptInput>
           </div>
 
-          {/* Quick Access Buttons */}
-          <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
-            <button
-              onClick={() => {
-                setShowChatInterface(true)
-                setShowIDE(true)
-              }}
-              className="inline-flex items-center gap-3 px-6 py-3 text-lg font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="16 18 22 12 16 6" />
-                <polyline points="8 6 2 12 8 18" />
-              </svg>
-              Launch IDE Workspace
-              <span className="text-sm opacity-90">✨ bolt.new style</span>
-            </button>
-            
+          {/* Quick Access */}
+          <div className="mt-8 flex justify-center">
             <div className="scale-110">
               <FeaturesPanel />
             </div>
@@ -893,10 +890,16 @@ export function HomeClient() {
               />
               <Suggestion
                 onClick={() => {
-                  setShowChatInterface(true)
-                  setShowIDE(true)
+                  setMessage('Create a React component')
+                  // Submit after setting message
+                  setTimeout(() => {
+                    const form = textareaRef.current?.form
+                    if (form) {
+                      form.requestSubmit()
+                    }
+                  }, 0)
                 }}
-                suggestion="🚀 Open IDE"
+                suggestion="React Component"
               />
             </Suggestions>
           </div>
