@@ -133,8 +133,8 @@ async function tryAlternativeProvider(
     console.error('Failed to send quota email:', err)
   })
   
-  // Define fallback order: v0 → claude → grok
-  const providerOrder = ['v0', 'claude', 'grok']
+  // Define fallback order: v0 → claude → grok → deepseek
+  const providerOrder = ['v0', 'claude', 'grok', 'deepseek']
   const nextProvider = providerOrder.find(p => !attemptedProviders.has(p))
   
   if (nextProvider) {
@@ -485,7 +485,7 @@ Respond conversationally for questions, but provide complete, working code for c
         if (false) {
           // Streaming disabled for Grok
           const result = await streamText({
-            model: grokProvider('grok-beta'),
+            model: grokProvider('grok-4-fast-non-reasoning'),
             messages: [
               {
                 role: 'system',
@@ -496,7 +496,8 @@ Respond conversationally for questions, but provide complete, working code for c
                 content: message,
               },
             ],
-            temperature: 0.7,
+            temperature: 1.0,
+            topP: 1,
           })
 
           console.log('� Grok stream initiated')
@@ -582,9 +583,9 @@ Respond conversationally for questions, but provide complete, working code for c
           })
         }
 
-        // Non-streaming mode with AI SDK
+        // Non-streaming mode with AI SDK - updated to use grok-4-fast-non-reasoning
         const result = await streamText({
-          model: grokProvider('grok-beta'),
+          model: grokProvider('grok-4-fast-non-reasoning'),
           messages: [
             {
               role: 'system',
@@ -595,7 +596,8 @@ Respond conversationally for questions, but provide complete, working code for c
               content: message,
             },
           ],
-          temperature: 0.7,
+          temperature: 1.0,
+          topP: 1,
         })
 
         const fullText = await result.text
@@ -671,6 +673,148 @@ Respond conversationally for questions, but provide complete, working code for c
         
         return NextResponse.json(
           { error: 'Failed to process request with Grok API' },
+          { status: 500 },
+        )
+      }
+    }
+
+    // Handle Azure DeepSeek API requests
+    if (provider === 'deepseek') {
+      console.log('🔴 Using Azure DeepSeek API for message:', message)
+
+      if (!process.env.AZURE_API_KEY) {
+        return NextResponse.json(
+          { error: 'Azure API key (AZURE_API_KEY) not configured' },
+          { status: 500 },
+        )
+      }
+
+      try {
+        const azureUrl = 'https://kamesh6592-7068-resource.services.ai.azure.com/models/chat/completions?api-version=2024-05-01-preview'
+        
+        const systemPrompt = `You are DeepSeek-R1, an advanced AI assistant created by DeepSeek. You are an expert React developer with deep knowledge of modern web technologies and reasoning capabilities.
+
+Your responsibilities:
+1. Generate clean, production-ready React components using TypeScript and Tailwind CSS
+2. Follow React best practices and modern patterns (hooks, composition, etc.)
+3. Write semantic, accessible HTML
+4. Include proper error handling and loading states
+5. Add helpful comments for complex logic
+6. Use your reasoning capabilities to provide well-thought-out solutions
+
+When asked about your identity, always identify yourself as DeepSeek-R1 (made by DeepSeek), not v0 or any other AI.
+
+Respond conversationally for questions, but provide complete, working code for component requests.`
+
+        console.log('Calling Azure DeepSeek API with model: DeepSeek-R1-0528')
+
+        // Call Azure API directly with fetch
+        const response = await fetch(azureUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.AZURE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            messages: [
+              {
+                role: 'system',
+                content: systemPrompt,
+              },
+              {
+                role: 'user',
+                content: message,
+              },
+            ],
+            stream: false,
+            max_tokens: 2048,
+            model: 'DeepSeek-R1-0528',
+            temperature: 0.7,
+          }),
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('Azure DeepSeek API Error:', response.status, errorText)
+          throw new Error(`Azure API request failed: ${response.status} ${errorText}`)
+        }
+
+        const data = await response.json()
+        const fullText = data.choices?.[0]?.message?.content || 'No response from DeepSeek'
+
+        console.log('✅ Azure DeepSeek API response received')
+
+        // Create a mock chat response that matches v0's structure
+        const mockChat = {
+          id: `deepseek-${Date.now()}`,
+          demo: `https://dev.ajstudioz.co.in/preview/${Date.now()}`,
+          messages: [
+            {
+              id: `msg-${Date.now()}`,
+              role: 'user' as const,
+              content: message,
+              timestamp: new Date().toISOString(),
+            },
+            {
+              id: `msg-${Date.now() + 1}`,
+              role: 'assistant' as const,
+              content: fullText,
+              timestamp: new Date().toISOString(),
+              experimental_content: [
+                {
+                  type: 'text',
+                  text: fullText,
+                },
+              ],
+            },
+          ],
+        }
+
+        // Log usage for rate limiting
+        if (!chatId) {
+          if (session?.user?.id) {
+            await createChatOwnership({
+              v0ChatId: mockChat.id,
+              userId: session.user.id,
+            })
+          } else {
+            const clientIP = getClientIP(request)
+            await createAnonymousChatLog({
+              ipAddress: clientIP,
+              v0ChatId: mockChat.id,
+            })
+          }
+        }
+
+        return NextResponse.json(mockChat)
+      } catch (error: any) {
+        console.error('Azure DeepSeek API Error:', error)
+        
+        // Check if this is a quota/rate limit error
+        const isQuotaError = error?.message?.toLowerCase().includes('quota') ||
+                           error?.message?.toLowerCase().includes('rate limit') ||
+                           error?.status === 429
+        
+        // Send email notification for DeepSeek failures
+        await sendQuotaExhaustedEmail('deepseek', error?.message || 'Unknown error').catch(err => {
+          console.error('Failed to send DeepSeek error email:', err)
+        })
+        
+        if (isQuotaError) {
+          const nextProvider = await tryAlternativeProvider('deepseek', error?.message || 'Unknown error', attemptedProviders)
+          console.log(`DeepSeek failed, retrying with ${nextProvider}`)
+          // Create new request with updated provider and pass attempted providers
+          const bodyWithNewProvider = { ...body, provider: nextProvider, _attemptedProviders: Array.from(attemptedProviders) }
+          const newRequest = new NextRequest(request.url, {
+            method: 'POST',
+            headers: request.headers,
+            body: JSON.stringify(bodyWithNewProvider),
+          })
+          return POST(newRequest)
+        }
+        
+        return NextResponse.json(
+          { error: 'Failed to process request with Azure DeepSeek API' },
           { status: 500 },
         )
       }

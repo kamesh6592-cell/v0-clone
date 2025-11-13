@@ -543,9 +543,10 @@ export function HomeClient() {
                           "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
                           currentProvider === 'v0' && "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
                           currentProvider === 'claude' && "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-                          currentProvider === 'grok' && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                          currentProvider === 'grok' && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+                          currentProvider === 'deepseek' && "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
                         )}>
-                          {currentProvider === 'v0' ? 'v0' : currentProvider === 'claude' ? 'Claude' : 'Grok'}
+                          {currentProvider === 'v0' ? 'v0' : currentProvider === 'claude' ? 'Claude' : currentProvider === 'grok' ? 'Grok' : 'DeepSeek'}
                         </span>
                       </div>
                     )}
@@ -590,7 +591,8 @@ export function HomeClient() {
                         "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
                         currentProvider === 'v0' && "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
                         currentProvider === 'claude' && "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-                        currentProvider === 'grok' && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                        currentProvider === 'grok' && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+                        currentProvider === 'deepseek' && "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
                       )}>
                         {currentProvider === 'v0' ? 'v0' : currentProvider === 'claude' ? 'Claude' : 'Grok'}
                       </span>
@@ -922,6 +924,13 @@ export function HomeClient() {
                 className="text-green-600 dark:text-green-400 hover:underline font-medium"
               >
                 Grok
+              </Link>
+              <span>•</span>
+              <Link
+                href="https://www.deepseek.com"
+                className="text-red-600 dark:text-red-400 hover:underline font-medium"
+              >
+                DeepSeek
               </Link>
             </p>
           </div>

@@ -124,6 +124,18 @@ export function AppHeader({ className = '' }: AppHeaderProps) {
               >
                 Grok
               </Button>
+              <Button
+                variant={provider === 'deepseek' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setProvider('deepseek')}
+                className={`h-9 px-4 text-xs font-semibold transition-all duration-200 rounded-lg ${
+                  provider === 'deepseek' 
+                    ? 'bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-md' 
+                    : 'hover:bg-white/5 text-gray-300'
+                }`}
+              >
+                DeepSeek
+              </Button>
             </div>
 
             {/* Streaming Toggle (only for v0 provider) */}
