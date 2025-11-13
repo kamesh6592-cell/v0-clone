@@ -149,14 +149,29 @@ export function PreviewPanel({
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-black">
-            <div className="text-center">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                No preview available
+          <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-black">
+            <div className="text-center max-w-md mx-auto p-8">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <svg
+                  className="w-8 h-8 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                Ready to Build
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Start a conversation to see your app come to life in real-time
               </p>
-              <p className="text-xs text-gray-700/50 dark:text-gray-200/50">
-                Start a conversation to see your app here
-              </p>
+              <div className="flex flex-col gap-2 text-xs text-gray-500 dark:text-gray-500">
+                <span>✨ Live preview with responsive testing</span>
+                <span>📱 Mobile, tablet & desktop views</span>
+                <span>🔄 Instant code updates</span>
+              </div>
             </div>
           </div>
         )}

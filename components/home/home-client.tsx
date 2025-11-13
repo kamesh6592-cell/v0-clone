@@ -30,6 +30,7 @@ import { TemplatesShowcase } from '@/components/home/templates-showcase'
 import Workbench from '@/components/workbench/Workbench'
 import { FeaturesPanel } from '@/components/features/FeaturesPanel'
 import { useProvider } from '@/contexts/provider-context'
+import { showNotification } from '@/components/ui/notifications'
 import { cn } from '@/lib/utils'
 
 // Component that uses useSearchParams - needs to be wrapped in Suspense
@@ -211,6 +212,30 @@ export function HomeClient() {
           console.error('API Error Response:', errorData)
           if (errorData.error) {
             errorMessage = errorData.error
+            
+            // Show provider-specific notifications
+            if (errorData.error.includes('Claude:') || errorData.error.includes('credit balance')) {
+              showNotification({
+                type: 'warning',
+                title: 'Switched to v0 AI',
+                message: 'Claude is temporarily unavailable. Using v0 for reliable responses.',
+                duration: 4000
+              })
+            } else if (errorData.error.includes('Grok:') || errorData.error.includes('spending limit')) {
+              showNotification({
+                type: 'warning', 
+                title: 'Switched to v0 AI',
+                message: 'Grok quota exhausted. Using v0 for continued service.',
+                duration: 4000
+              })
+            } else if (errorData.error.includes('DeepSeek:') || errorData.error.includes('API key')) {
+              showNotification({
+                type: 'warning',
+                title: 'Switched to v0 AI', 
+                message: 'DeepSeek unavailable. Using v0 for reliable processing.',
+                duration: 4000
+              })
+            }
           } else if (errorData.message) {
             errorMessage = errorData.message
           } else if (response.status === 429) {

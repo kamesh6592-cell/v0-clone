@@ -6,6 +6,7 @@ import { ProviderProvider } from '@/contexts/provider-context'
 import { ThemeProvider } from '@/contexts/theme-context'
 import { SWRProvider } from '@/components/providers/swr-provider'
 import { SessionProvider } from '@/components/providers/session-provider'
+import { NotificationContainer } from '@/components/ui/notifications'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -52,7 +53,10 @@ export default function RootLayout({
           <SessionProvider>
             <SWRProvider>
               <ProviderProvider>
-                <StreamingProvider>{children}</StreamingProvider>
+                <StreamingProvider>
+                  {children}
+                  <NotificationContainer />
+                </StreamingProvider>
               </ProviderProvider>
             </SWRProvider>
           </SessionProvider>

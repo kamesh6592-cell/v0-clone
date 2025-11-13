@@ -162,6 +162,11 @@ export async function POST(request: NextRequest) {
     // Restore attempted providers from previous request
     attemptedProviders = new Set<string>(_attemptedProviders || [])
     console.log('Starting request with provider:', provider, 'Previously attempted:', Array.from(attemptedProviders))
+    
+    // If external providers are failing, force v0 as fallback
+    if (!provider || provider === 'v0' || (provider !== 'v0' && attemptedProviders.size > 0)) {
+      console.log('Using v0 as primary or fallback provider')
+    }
 
     if (!message) {
       return NextResponse.json(
@@ -212,10 +217,30 @@ export async function POST(request: NextRequest) {
     console.log('Using provider:', provider)
     console.log('Using baseUrl:', process.env.V0_API_URL || 'default')
 
+    // Force v0 if external providers have issues or no API keys configured
+    const useV0AsFallback = () => {
+      if (!process.env.ANTHROPIC_API_KEY && provider === 'claude') {
+        console.log('No Claude API key, using v0')
+        return true
+      }
+      if (!process.env.XAI_API_KEY && provider === 'grok') {
+        console.log('No Grok API key, using v0')
+        return true
+      }
+      if (!process.env.AZURE_API_KEY && provider === 'deepseek') {
+        console.log('No Azure API key, using v0')
+        return true
+      }
+      return false
+    }
+
+    // Override provider if API keys are missing
+    const effectiveProvider = useV0AsFallback() ? 'v0' : provider
+
     let chat
 
     // Handle Claude API requests  
-    if (provider === 'claude') {
+    if (effectiveProvider === 'claude') {
       console.log('🔵 Using Claude API for message:', message)
       
       if (!process.env.ANTHROPIC_API_KEY) {
@@ -416,11 +441,21 @@ Respond conversationally for questions, but provide complete, working code for c
           type: error?.type
         })
         
-        // Only check for ACTUAL quota/rate limit errors (429 status code)
-        // Since Claude API is unlimited, don't treat connection errors as quota issues
+        // Provide user-friendly error message
+        let userErrorMessage = 'Claude API temporarily unavailable.'
+        if (error?.message?.includes('credit balance')) {
+          userErrorMessage = 'Claude: Credit balance too low. Switching to v0...'
+        } else if (error?.status === 429) {
+          userErrorMessage = 'Claude: Rate limit reached. Switching to v0...'
+        }
+        
+        // Check for quota/credit issues including credit balance errors
         const isQuotaError = error?.status === 429 ||
-                            (error?.message?.toLowerCase().includes('rate_limit') && error?.status === 429) ||
-                            (error?.message?.toLowerCase().includes('quota') && error?.status === 429)
+                            error?.status === 400 ||
+                            (error?.message?.toLowerCase().includes('rate_limit')) ||
+                            (error?.message?.toLowerCase().includes('quota')) ||
+                            (error?.message?.toLowerCase().includes('credit balance')) ||
+                            (error?.message?.toLowerCase().includes('billing'))
         
         if (isQuotaError) {
           // Only send email and switch if it's a REAL quota/rate limit error
@@ -444,14 +479,14 @@ Respond conversationally for questions, but provide complete, working code for c
         // For non-quota errors, just log and return error (don't switch providers)
         console.error('Claude API non-quota error, not switching providers')
         return NextResponse.json(
-          { error: `Failed to process request with Claude API: ${error?.message || 'Unknown error'}` },
+          { error: userErrorMessage || `Failed to process request with Claude API: ${error?.message || 'Unknown error'}` },
           { status: 500 },
         )
       }
     }
 
     // Handle Grok (xAI) API requests
-    if (provider === 'grok') {
+    if (effectiveProvider === 'grok') {
       console.log('🟢 Using Grok (xAI) API for message:', message)
 
       if (!process.env.XAI_API_KEY) {
@@ -648,6 +683,17 @@ Respond conversationally for questions, but provide complete, working code for c
       } catch (error: any) {
         console.error('Grok API Error:', error)
         
+        // Provide user-friendly error message
+        let userErrorMessage = 'Grok API temporarily unavailable.'
+        if (error?.message?.includes('spending limit')) {
+          userErrorMessage = 'Grok: Monthly spending limit reached. Switching to v0...'
+        } else if (error?.message?.includes('credits')) {
+          userErrorMessage = 'Grok: Credits exhausted. Switching to v0...'
+        } else if (error?.status === 429) {
+          userErrorMessage = 'Grok: Rate limit reached. Switching to v0...'
+        }
+        console.log('User error message:', userErrorMessage)
+        
         // Check if this is a quota/rate limit error
         const isQuotaError = error?.message?.toLowerCase().includes('quota') ||
                            error?.message?.toLowerCase().includes('rate limit') ||
@@ -672,14 +718,14 @@ Respond conversationally for questions, but provide complete, working code for c
         }
         
         return NextResponse.json(
-          { error: 'Failed to process request with Grok API' },
+          { error: userErrorMessage || 'Failed to process request with Grok API' },
           { status: 500 },
         )
       }
     }
 
     // Handle Azure DeepSeek API requests
-    if (provider === 'deepseek') {
+    if (effectiveProvider === 'deepseek') {
       console.log('🔴 Using Azure DeepSeek API for message:', message)
 
       if (!process.env.AZURE_API_KEY) {
@@ -790,6 +836,17 @@ Respond conversationally for questions, but provide complete, working code for c
       } catch (error: any) {
         console.error('Azure DeepSeek API Error:', error)
         
+        // Provide user-friendly error message
+        let userErrorMessage = 'DeepSeek API temporarily unavailable.'
+        if (error?.status === 401 || error?.message?.includes('api key')) {
+          userErrorMessage = 'DeepSeek: API key invalid. Switching to v0...'
+        } else if (error?.status === 403) {
+          userErrorMessage = 'DeepSeek: Access forbidden. Switching to v0...'
+        } else if (error?.status === 429) {
+          userErrorMessage = 'DeepSeek: Rate limit reached. Switching to v0...'
+        }
+        console.log('User error message:', userErrorMessage)
+        
         // Check if this is a quota/rate limit error
         const isQuotaError = error?.message?.toLowerCase().includes('quota') ||
                            error?.message?.toLowerCase().includes('rate limit') ||
@@ -814,7 +871,7 @@ Respond conversationally for questions, but provide complete, working code for c
         }
         
         return NextResponse.json(
-          { error: 'Failed to process request with Azure DeepSeek API' },
+          { error: userErrorMessage || 'Failed to process request with Azure DeepSeek API' },
           { status: 500 },
         )
       }
