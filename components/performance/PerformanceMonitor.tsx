@@ -263,7 +263,7 @@ export function PerformanceMonitor() {
                     </div>
                     <div className="text-right text-sm text-gray-600">
                       <div>Good: ≤ {vital.threshold.good}{vital.unit}</div>
-                      <div>Poor: > {vital.threshold.poor}{vital.unit}</div>
+                      <div>Poor: &gt; {vital.threshold.poor}{vital.unit}</div>
                     </div>
                   </div>
                   

@@ -9,7 +9,7 @@ export type Theme = 'dark' | 'light';
 
 export function getTheme(theme: Theme, settings: EditorSettings = {}): Extension {
   return [
-    getEditorTheme(settings),
+    getEditorTheme(settings, theme),
     theme === 'dark' ? themeSelection.of([getDarkTheme()]) : themeSelection.of([getLightTheme()]),
   ];
 }
@@ -18,7 +18,7 @@ export function reconfigureTheme(theme: Theme) {
   return themeSelection.reconfigure(theme === 'dark' ? getDarkTheme() : getLightTheme());
 }
 
-function getEditorTheme(settings: EditorSettings) {
+function getEditorTheme(settings: EditorSettings, theme: Theme = 'light') {
   return EditorView.theme({
     '&': {
       fontSize: settings.fontSize ?? '14px',

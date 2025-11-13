@@ -167,7 +167,7 @@ export class WebContainerManager {
   async fileExists(path: string): Promise<boolean> {
     try {
       const webcontainer = await this.getWebContainer();
-      await webcontainer.fs.stat(path);
+      await webcontainer.fs.readFile(path);
       return true;
     } catch {
       return false;

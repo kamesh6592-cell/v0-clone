@@ -5,7 +5,7 @@ import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Badge } from '../ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Tool, Server, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { Wrench, Server, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface MCPTool {
   name: string;
@@ -152,7 +152,7 @@ export function MCPTools({ servers = defaultServers, onRefresh, onExecuteTool }:
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="flex items-center gap-2 relative">
-          <Tool className="w-4 h-4" />
+          <Wrench className="w-4 h-4" />
           MCP Tools
           {totalTools > 0 && (
             <Badge variant="secondary" className="text-xs h-5 min-w-5 flex items-center justify-center">
@@ -165,7 +165,7 @@ export function MCPTools({ servers = defaultServers, onRefresh, onExecuteTool }:
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Tool className="w-5 h-5" />
+            <Wrench className="w-5 h-5" />
             Model Context Protocol Tools
           </DialogTitle>
         </DialogHeader>
@@ -189,7 +189,7 @@ export function MCPTools({ servers = defaultServers, onRefresh, onExecuteTool }:
 
           {servers.length === 0 ? (
             <div className="text-center py-8">
-              <Tool className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <Wrench className="w-12 h-12 mx-auto mb-4 text-gray-400" />
               <h3 className="text-lg font-medium mb-2">No MCP Servers Configured</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
                 Configure MCP servers in settings to access external tools and services.
@@ -232,7 +232,7 @@ export function MCPTools({ servers = defaultServers, onRefresh, onExecuteTool }:
                           <div key={tool.name} className="flex items-center justify-between p-3 border rounded-lg">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <Tool className="w-4 h-4" />
+                                <Wrench className="w-4 h-4" />
                                 <span className="font-medium">{tool.name}</span>
                               </div>
                               <p className="text-sm text-gray-600 dark:text-gray-400">{tool.description}</p>

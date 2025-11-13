@@ -38,45 +38,47 @@ export function SpeechRecognition({
       recognitionRef.current = new SpeechRecognition();
       
       const recognition = recognitionRef.current;
-      recognition.continuous = continuous;
-      recognition.interimResults = interimResults;
-      recognition.lang = language;
+      if (recognition) {
+        recognition.continuous = continuous;
+        recognition.interimResults = interimResults;
+        recognition.lang = language;
 
-      recognition.onstart = () => {
-        setIsListening(true);
-        onSpeechStart?.();
-      };
+        recognition.onstart = () => {
+          setIsListening(true);
+          onSpeechStart?.();
+        };
 
-      recognition.onend = () => {
-        setIsListening(false);
-        onSpeechEnd?.();
-      };
+        recognition.onend = () => {
+          setIsListening(false);
+          onSpeechEnd?.();
+        };
 
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let finalTranscript = '';
-        let interim = '';
+        recognition.onresult = (event: any) => {
+          let finalTranscript = '';
+          let interim = '';
 
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          if (result.isFinal) {
-            finalTranscript += result[0].transcript;
-          } else {
-            interim += result[0].transcript;
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const result = event.results[i];
+            if (result.isFinal) {
+              finalTranscript += result[0].transcript;
+            } else {
+              interim += result[0].transcript;
+            }
           }
-        }
 
-        if (finalTranscript) {
-          setTranscript(prev => prev + finalTranscript);
-          onTranscript?.(finalTranscript);
-        }
+          if (finalTranscript) {
+            setTranscript(prev => prev + finalTranscript);
+            onTranscript?.(finalTranscript);
+          }
 
-        setInterimTranscript(interim);
-      };
+          setInterimTranscript(interim);
+        };
 
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
+        recognition.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+        };
+      }
     }
 
     return () => {
@@ -250,7 +252,7 @@ export function SpeechInterface({
     interimResults: true,
   });
 
-  if (!speech.isSupported) {
+  if (!speech || !speech.isSupported) {
     return (
       <div className="text-sm text-gray-500">
         Speech recognition not supported in this browser

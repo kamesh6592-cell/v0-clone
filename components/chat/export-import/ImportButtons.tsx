@@ -74,7 +74,7 @@ export function ImportButtons({ importChat, importFolder }: ImportButtonsProps) 
         ref={folderInputRef}
         type="file"
         className="hidden"
-        webkitdirectory=""
+        {...({ webkitdirectory: "" } as any)}
         multiple
         onChange={(e) => {
           const files = e.target.files;
