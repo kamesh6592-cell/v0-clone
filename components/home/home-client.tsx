@@ -29,6 +29,7 @@ import { BottomToolbar } from '@/components/shared/bottom-toolbar'
 import { TemplatesShowcase } from '@/components/home/templates-showcase'
 import Workbench from '@/components/workbench/Workbench'
 import { FeaturesPanel } from '@/components/features/FeaturesPanel'
+import { DeployButton } from '@/components/deployment/DeployButton'
 import { useProvider } from '@/contexts/provider-context'
 import { showNotification } from '@/components/ui/notifications'
 import { cn } from '@/lib/utils'
@@ -79,6 +80,7 @@ export function HomeClient() {
   const [currentProvider, setCurrentProvider] = useState<string>('v0')
   const [isStreaming, setIsStreaming] = useState(false)
   const [showIDE, setShowIDE] = useState(false)
+  const [currentView, setCurrentView] = useState<'chat' | 'code' | 'preview'>('chat')
   const router = useRouter()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -503,53 +505,46 @@ export function HomeClient() {
             </svg>
             Back
           </button>
-          <button
-            onClick={() => setShowIDE(!showIDE)}
-            className={cn(
-              "inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors",
-              showIDE
-                ? "text-white bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600"
-                : "text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
-            )}
-          >
-            {showIDE ? (
-              <>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="16 18 22 12 16 6" />
-                  <polyline points="8 6 2 12 8 18" />
-                </svg>
-                Code
-              </>
-            ) : (
-              <>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect width="18" height="18" x="3" y="3" rx="2"/>
-                  <path d="M9 9h6v6h-6z"/>
-                </svg>
-                Preview
-              </>
-            )}
-          </button>
+          {/* View Toggle - Bolt.diy Style */}
+          <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1 shadow-sm">
+            <button
+              onClick={() => setCurrentView('chat')}
+              className={cn(
+                "px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200",
+                currentView === 'chat'
+                  ? "text-white bg-blue-600 dark:bg-blue-500 shadow-sm"
+                  : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700"
+              )}
+            >
+              Chat
+            </button>
+            <button
+              onClick={() => setCurrentView('code')}
+              className={cn(
+                "px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200",
+                currentView === 'code'
+                  ? "text-white bg-blue-600 dark:bg-blue-500 shadow-sm"
+                  : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700"
+              )}
+            >
+              Code
+            </button>
+            <button
+              onClick={() => setCurrentView('preview')}
+              className={cn(
+                "px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200",
+                currentView === 'preview'
+                  ? "text-white bg-blue-600 dark:bg-blue-500 shadow-sm"
+                  : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700"
+              )}
+            >
+              Preview
+            </button>
+          </div>
+          
+          {/* Deploy Button */}
+          <DeployButton hasPreview={!!currentChat} isStreaming={isStreaming} />
+          
           <FeaturesPanel />
           <button
             onClick={handleReset}
@@ -573,8 +568,13 @@ export function HomeClient() {
         </div>
 
         <div className="flex flex-col h-[calc(100vh-64px-40px-48px)] md:h-[calc(100vh-64px-48px)]">
-          {showIDE ? (
-            <div className="flex-1 min-h-0">
+          {/* Unified View System */}
+          <div className="flex-1 relative overflow-hidden">
+            {/* Chat View */}
+            <div className={cn(
+              "absolute inset-0 transition-all duration-300",
+              currentView === 'chat' ? "opacity-100 z-10" : "opacity-0 -z-10"
+            )}>
               <ResizableLayout
                 className="h-full"
                 singlePanelMode={false}
@@ -618,65 +618,41 @@ export function HomeClient() {
                   </div>
                 }
                 rightPanel={
-                  <Workbench className="h-full" theme="dark" />
+                  <PreviewPanel
+                    currentChat={currentChat}
+                    isFullscreen={isFullscreen}
+                    setIsFullscreen={setIsFullscreen}
+                    refreshKey={refreshKey}
+                    setRefreshKey={setRefreshKey}
+                  />
                 }
               />
             </div>
-          ) : (
-            <ResizableLayout
-              className="flex-1 min-h-0"
-              singlePanelMode={false}
-              activePanel={activePanel === 'chat' ? 'left' : 'right'}
-              leftPanel={
-                <div className="flex flex-col h-full relative">
-                  {isStreaming && (
-                    <div className="absolute top-2 right-2 z-10 flex items-center gap-2 bg-white dark:bg-gray-800 rounded-full px-3 py-1.5 shadow-md border border-gray-200 dark:border-gray-700">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
-                        AI:
-                      </span>
-                      <span className={cn(
-                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
-                        currentProvider === 'v0' && "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-                        currentProvider === 'claude' && "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-                        currentProvider === 'grok' && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-                        currentProvider === 'deepseek' && "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                      )}>
-                        {currentProvider === 'v0' ? 'v0' : currentProvider === 'claude' ? 'Claude' : 'Grok'}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex-1 overflow-y-auto">
-                    <ChatMessages
-                      chatHistory={chatHistory}
-                      isLoading={isLoading}
-                      currentChat={currentChat}
-                      onStreamingComplete={handleStreamingComplete}
-                      onChatData={handleChatData}
-                      onStreamingStarted={() => setIsLoading(false)}
-                    />
-                  </div>
 
-                  <ChatInput
-                    message={message}
-                    setMessage={setMessage}
-                    onSubmit={handleChatSendMessage}
-                    isLoading={isLoading}
-                    showSuggestions={false}
-                  />
-                </div>
-              }
-              rightPanel={
-                <PreviewPanel
-                  currentChat={currentChat}
-                  isFullscreen={isFullscreen}
-                  setIsFullscreen={setIsFullscreen}
-                  refreshKey={refreshKey}
-                  setRefreshKey={setRefreshKey}
-                />
-              }
-            />
-          )}
+            {/* Code View */}
+            <div className={cn(
+              "absolute inset-0 transition-all duration-300",
+              currentView === 'code' ? "opacity-100 z-10" : "opacity-0 -z-10"
+            )}>
+              <Workbench className="h-full" theme="dark" />
+            </div>
 
+            {/* Preview View */}
+            <div className={cn(
+              "absolute inset-0 transition-all duration-300",
+              currentView === 'preview' ? "opacity-100 z-10" : "opacity-0 -z-10"
+            )}>
+              <PreviewPanel
+                currentChat={currentChat}
+                isFullscreen={isFullscreen}
+                setIsFullscreen={setIsFullscreen}
+                refreshKey={refreshKey}
+                setRefreshKey={setRefreshKey}
+              />
+            </div>
+          </div>
+          
+          {/* Mobile Bottom Toolbar */}
           <div className="md:hidden">
             <BottomToolbar
               activePanel={activePanel}
