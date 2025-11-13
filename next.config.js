@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   compress: true,
   
   // Enable experimental features
@@ -160,14 +159,7 @@ const nextConfig = {
     ignoreDuringBuilds: false,
   },
 
-  // PWA configuration (if using next-pwa)
-  ...(process.env.NODE_ENV === 'production' && {
-    pwa: {
-      dest: 'public',
-      register: true,
-      skipWaiting: true,
-    },
-  }),
+  // PWA configuration removed to fix build warnings
 };
 
 module.exports = nextConfig;
